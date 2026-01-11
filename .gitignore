@@ -3,3 +3,18 @@ node_modules
 .DS_Store
 terraform/.terraform
 terraform/*.tfstate*
+
+# Terraform generated files
+**/.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
+# Optional: ignore tfvars if they contain secrets
+*.tfvars
+*.tfvars.json
+
+# Logs
+backend/logs/
+*.log
