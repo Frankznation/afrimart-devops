@@ -1,0 +1,15 @@
+aws_region = "eu-north-1"
+bucket_name = "afrimart-uploads"
+ec2_role_arn = "arn:aws:iam::024258572182:role/afrimart-ec2-role"
+instance_profile_name = "afrimart-ec2-profile"
+launch_template_id = "lt-010a62b6ec0f5734c"
+private_subnet_ids = [
+  "subnet-075b9c2e143c09a35",
+  "subnet-0685041998e3badeb",
+]
+project_name = "afrimart"
+public_subnet_ids = [
+  "subnet-098a4d80d6cb041b8",
+  "subnet-01591444762dcebd3",
+]
+vpc_id = "vpc-026dce62dfb51902b"
