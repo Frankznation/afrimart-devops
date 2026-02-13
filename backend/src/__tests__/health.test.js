@@ -1,8 +1,6 @@
 /**
  * Unit test for health endpoint logic (no DB/Redis required)
  */
-const express = require('express');
-
 describe('Health check', () => {
   it('should return healthy status', () => {
     const status = 'healthy';
