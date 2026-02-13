@@ -38,8 +38,25 @@ End-to-end DevOps deployment for the AfriMart e-commerce platform (Terraform, An
 
 ## Documentation
 
-- **[docs/DEVOPS_GUIDE.md](docs/DEVOPS_GUIDE.md)** – Terraform + Ansible deployment
-- **[docs/DOCKER_PHASE3.md](docs/DOCKER_PHASE3.md)** – Docker, ECR, containerization (Phase 3)
+| Document | Description |
+|----------|-------------|
+| [docs/DEVOPS_GUIDE.md](docs/DEVOPS_GUIDE.md) | Terraform + Ansible deployment |
+| [docs/DOCKER_PHASE3.md](docs/DOCKER_PHASE3.md) | **Phase 3: Containerization** – guidelines, ECR, best practices |
+
+## Phase 3: Docker (Quick Start)
+
+```bash
+# Local development with docker-compose
+cd docker
+docker compose up -d
+# Frontend: http://localhost:3001 | Backend: http://localhost:5001
+
+# Push to ECR (after terraform apply)
+aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin <account-id>.dkr.ecr.eu-north-1.amazonaws.com
+docker build -t afrimart/backend:latest ./backend
+docker tag afrimart/backend:latest <ecr-url>:latest
+docker push <ecr-url>:latest
+```
 
 ## Terraform Outputs (Example)
 

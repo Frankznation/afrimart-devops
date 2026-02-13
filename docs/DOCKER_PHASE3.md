@@ -1,138 +1,264 @@
-# Phase 3: Containerization
+# Phase 3: Containerization – Guidelines & Documentation
 
-This document covers the Docker implementation for AfriMart, including Dockerfiles, docker-compose, ECR, and best practices.
+This document provides guidelines, step-by-step instructions, and reference material for the AfriMart Phase 3 containerization implementation.
 
 ---
 
-## 1. Docker Implementation
+## Table of Contents
+
+1. [Overview](#overview)
+2. [Implementation Checklist](#implementation-checklist)
+3. [Docker Implementation](#docker-implementation)
+4. [Container Registry (ECR)](#container-registry-ecr)
+5. [Docker Best Practices](#docker-best-practices)
+6. [Quick Reference](#quick-reference)
+7. [Evaluation Criteria](#evaluation-criteria)
+8. [Troubleshooting](#troubleshooting)
+
+---
+
+## Overview
+
+Phase 3 covers:
+
+- **Docker Implementation** – Optimized Dockerfiles, docker-compose for local dev
+- **Container Registry** – Amazon ECR with scanning and lifecycle policies
+- **Best Practices** – Image size, security, non-root users, .dockerignore
+
+### Deliverables
+
+| Deliverable | Location |
+|-------------|----------|
+| Optimized Dockerfiles | `backend/Dockerfile`, `frontend/Dockerfile` |
+| docker-compose.yml | `docker/docker-compose.yml` |
+| ECR Terraform module | `terraform/modules/ecr/` |
+| Documentation | This file |
+
+---
+
+## Implementation Checklist
+
+### Docker Implementation
+
+- [x] Review and optimize provided Dockerfiles
+- [x] Create docker-compose for local development
+- [x] Implement multi-stage builds
+- [x] Add health checks to containers
+- [x] Configure proper logging
+
+### Container Registry (ECR)
+
+- [x] Set up Amazon ECR repositories (Terraform)
+- [x] Implement image tagging strategy
+- [x] Configure image scanning (scan_on_push)
+- [x] Set up lifecycle policies (keep last 10)
+
+### Docker Best Practices
+
+- [x] Minimize image size (Alpine, multi-stage)
+- [x] Use non-root users
+- [x] Implement .dockerignore
+- [x] Pin base image versions
+
+---
+
+## Docker Implementation
 
 ### Backend Dockerfile
 
-- **Multi-stage build**: Builder stage installs dependencies, production stage copies only `node_modules` and app code
-- **Pinned base image**: `node:18.20.4-alpine3.19` for reproducibility
-- **Non-root user**: Runs as `nodejs` (UID 1001)
-- **Health check**: HTTP GET to `/health` every 30s
-- **Minimal layers**: Combined RUN where practical
+**Location:** `backend/Dockerfile`
+
+| Aspect | Implementation |
+|--------|----------------|
+| Multi-stage build | Builder installs deps, production copies only needed files |
+| Base image | `node:18.20.4-alpine3.19` (pinned) |
+| Non-root user | `nodejs` (UID 1001) |
+| Health check | GET `/health` every 30s, 3 retries |
+| CMD | `node src/server.js` |
 
 ### Frontend Dockerfile
 
-- **Multi-stage build**: Builder compiles Vite/React, production stage uses nginx to serve static files
-- **Pinned base images**: `node:18.20.4-alpine3.19` (build), `nginx:1.25.4-alpine` (runtime)
-- **Health check**: HTTP GET to `/health.html` every 30s
-- **Build arg**: `VITE_API_URL` passed at build time for API endpoint
+**Location:** `frontend/Dockerfile`
+
+| Aspect | Implementation |
+|--------|----------------|
+| Multi-stage build | Builder compiles Vite, production serves via nginx |
+| Base images | `node:18.20.4-alpine3.19` (build), `nginx:1.25.4-alpine` (runtime) |
+| Build arg | `VITE_API_URL` – set at build time for API endpoint |
+| Health check | GET `/health.html` every 30s |
+| CMD | `nginx -g daemon off` |
 
 ### docker-compose (Local Development)
 
-Located at `docker/docker-compose.yml`:
+**Location:** `docker/docker-compose.yml`
 
-| Service   | Image                     | Ports  | Purpose                    |
-|-----------|---------------------------|--------|----------------------------|
-| postgres  | postgres:14.11-alpine     | 5433   | PostgreSQL database        |
-| redis     | redis:7.2.4-alpine        | 6380   | Redis cache                |
-| backend   | built from ../backend     | 5001   | Node.js API                |
-| frontend  | built from ../frontend    | 3001   | React/Vite SPA             |
-| nginx     | nginx:1.25.4-alpine       | 80     | Reverse proxy (profile: production) |
+| Service | Image | Port | Purpose |
+|---------|-------|------|---------|
+| postgres | postgres:14.11-alpine | 5433 | Database |
+| redis | redis:7.2.4-alpine | 6380 | Cache |
+| backend | built from ../backend | 5001 | API |
+| frontend | built from ../frontend | 3001 | Web UI |
+| nginx | nginx:1.25.4-alpine | 80 | Reverse proxy (profile: production) |
 
-**Logging**: All services use `json-file` driver with `max-size: 10m`, `max-file: 3`.
+**Logging:** `json-file` driver, `max-size: 10m`, `max-file: 3` for all services.
 
-**Usage:**
+#### Usage
+
 ```bash
+# Start all services (dev mode)
 cd docker
 docker compose up -d
+
+# Access
 # Frontend: http://localhost:3001
-# Backend API: http://localhost:5001
-# With nginx: docker compose --profile production up -d → http://localhost:80
+# Backend:  http://localhost:5001
+
+# With nginx reverse proxy (production-like)
+docker compose --profile production up -d
+# Single entry: http://localhost:80
+
+# Stop
+docker compose down
 ```
 
 ---
 
-## 2. Amazon ECR
+## Container Registry (ECR)
 
 ### Terraform Module
 
-The `terraform/modules/ecr` module creates:
+**Location:** `terraform/modules/ecr/`
 
-- **afrimart/backend** – Backend API image repository
-- **afrimart/frontend** – Frontend image repository
+Creates two repositories:
+
+- `afrimart/backend`
+- `afrimart/frontend`
 
 ### Features
 
-| Feature           | Configuration                                |
-|-------------------|----------------------------------------------|
-| Image scanning    | `scan_on_push = true` (vulnerability scans)  |
-| Encryption        | AES256 at rest                              |
-| Lifecycle policy  | Keep last 10 images, expire older           |
+| Feature | Configuration |
+|---------|---------------|
+| Image scanning | `scan_on_push = true` (CVE scanning) |
+| Encryption | AES256 at rest |
+| Lifecycle policy | Keep last 10 images, expire older |
 
-### Image Tagging Strategy
-
-| Tag          | Use case                          |
-|--------------|-----------------------------------|
-| `latest`     | Development, manual testing       |
-| `v1.0.0`     | Semantic version for releases     |
-| `sha-abc123` | Git commit SHA (CI/CD)            |
-| `staging`    | Staging environment               |
-
-### Push to ECR
-
-```bash
-# Authenticate
-aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin <account-id>.dkr.ecr.eu-north-1.amazonaws.com
-
-# Build and tag
-docker build -t afrimart/backend:latest ./backend
-docker tag afrimart/backend:latest <account-id>.dkr.ecr.eu-north-1.amazonaws.com/afrimart/backend:latest
-
-# Push
-docker push <account-id>.dkr.ecr.eu-north-1.amazonaws.com/afrimart/backend:latest
-```
-
-Replace `<account-id>` with your AWS account ID. Get ECR URLs from Terraform:
+### Apply ECR (Terraform)
 
 ```bash
 cd terraform/environments/dev
+terraform init
+terraform apply -var="db_password=YourPassword"  # ECR created with other resources
 terraform output ecr_backend_url
 terraform output ecr_frontend_url
 ```
 
----
+### Image Tagging Strategy
 
-## 3. Docker Best Practices Applied
+| Tag | Use case |
+|-----|----------|
+| `latest` | Development, manual builds |
+| `v1.0.0` | Release versions |
+| `sha-<commit>` | CI/CD (e.g. `sha-abc1234`) |
+| `staging` | Staging environment |
 
-| Practice              | Implementation                                      |
-|-----------------------|-----------------------------------------------------|
-| Minimize image size   | Alpine base images, multi-stage builds, no dev deps in prod |
-| Non-root user         | Backend: `nodejs` (1001); Frontend: nginx default   |
-| .dockerignore         | Excludes node_modules, .env, tests, coverage        |
-| Pinned versions       | node:18.20.4-alpine3.19, nginx:1.25.4-alpine        |
-| Health checks         | All services have HEALTHCHECK                       |
-| Logging               | json-file with size limits in docker-compose        |
-
----
-
-## 4. Image Size Comparison
-
-Run the following to compare image sizes before/after optimization:
+### Push Images to ECR
 
 ```bash
-# Build images
-docker build -t afrimart-backend:test ./backend
-docker build -t afrimart-frontend:test ./frontend
+# 1. Authenticate (replace <account-id> with your AWS account ID)
+aws ecr get-login-password --region eu-north-1 | \
+  docker login --username AWS --password-stdin <account-id>.dkr.ecr.eu-north-1.amazonaws.com
 
-# Report sizes
-docker images afrimart-backend:test afrimart-frontend:test --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}"
+# 2. Build
+docker build -t afrimart/backend:latest ./backend
+docker build -t afrimart/frontend:latest ./frontend
+
+# 3. Tag for ECR (use URL from terraform output)
+ECR_URL=$(cd terraform/environments/dev && terraform output -raw ecr_backend_url)
+docker tag afrimart/backend:latest $ECR_URL:latest
+
+# 4. Push
+docker push $ECR_URL:latest
 ```
-
-**Expected approximate sizes (Alpine-based):**
-
-| Image   | Approx Size |
-|---------|-------------|
-| Backend | ~150–200 MB |
-| Frontend| ~25–40 MB   |
 
 ---
 
-## 5. Security
+## Docker Best Practices
 
-- **ECR scan on push**: Enabled; view findings in ECR console
-- **Trivy** (Phase 4): Can be added to CI for pre-push scanning
-- **Secrets**: Never copy `.env` into images; use runtime env or secrets manager
+| Practice | Implementation |
+|----------|----------------|
+| **Minimize image size** | Alpine base, multi-stage, no devDependencies in prod |
+| **Non-root user** | Backend: `nodejs`, Frontend: nginx default |
+| **.dockerignore** | Excludes node_modules, .env, tests, coverage, .git |
+| **Pinned versions** | All images use specific tags (e.g. 18.20.4-alpine3.19) |
+| **Health checks** | All services have HEALTHCHECK in Dockerfile and compose |
+| **Logging** | Size-limited json-file driver in docker-compose |
+| **Secrets** | Never bake .env into images; use runtime env |
+
+### .dockerignore
+
+Both `backend/.dockerignore` and `frontend/.dockerignore` exclude:
+
+- `node_modules`, `npm-debug.log*`
+- `.env`, `.env.*`
+- `.git`, `.gitignore`
+- `coverage`, `*.test.js`, `*.spec.js`
+- `logs`, `uploads/*`, `dist`
+
+---
+
+## Quick Reference
+
+### Build Images
+
+```bash
+docker build -t afrimart-backend:test ./backend
+docker build -t afrimart-frontend:test ./frontend
+```
+
+### Image Size Report
+
+```bash
+docker images afrimart-backend afrimart-frontend --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}"
+```
+
+**Expected:** Backend ~150–200 MB, Frontend ~25–40 MB
+
+### Local Test (Full Stack)
+
+```bash
+cd docker
+docker compose up -d
+curl http://localhost:5001/health
+curl http://localhost:3001
+```
+
+---
+
+## Evaluation Criteria
+
+| Criterion | Weight | How We Addressed It |
+|-----------|--------|---------------------|
+| **Image optimization** | 30% | Alpine base, multi-stage builds, .dockerignore |
+| **Security practices** | 30% | Non-root users, ECR scan on push, no secrets in images |
+| **Build efficiency** | 20% | Multi-stage, cached layers, minimal deps |
+| **Documentation** | 20% | This doc, inline comments, README references |
+
+---
+
+## Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Build fails: `npm ci` | Ensure `package-lock.json` exists and is committed |
+| Frontend blank / wrong API | Set `VITE_API_URL` build arg correctly (e.g. `http://localhost:5001/api`) |
+| Health check fails | Backend must expose `/health`; frontend serves `/health.html` |
+| ECR push denied | Run `aws ecr get-login-password` and `docker login` |
+| Port in use | Change host ports in docker-compose (e.g. 5434:5432) |
+| Large image size | Ensure .dockerignore excludes node_modules, use `docker system prune` |
+
+---
+
+## Related Documentation
+
+- [DEVOPS_GUIDE.md](DEVOPS_GUIDE.md) – Terraform + Ansible
+- [../README.md](../README.md) – Repository overview
