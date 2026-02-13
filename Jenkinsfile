@@ -1,13 +1,10 @@
 pipeline {
-    agent {
-        docker {
-            image 'node:18'
-            args '-u root'
-        }
-    }
+    agent any
     environment {
         AWS_REGION = 'eu-north-1'
         DOCKER_BUILDKIT = '1'
+        NODE_HOME = "${WORKSPACE}/node"
+        PATH = "${WORKSPACE}/node/bin:${env.PATH}"
     }
     options {
         buildDiscarder(logRotator(numToKeepStr: '10'))
@@ -17,6 +14,31 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout scm
+            }
+        }
+        stage('Install Node.js') {
+            steps {
+                sh '''#!/bin/sh
+                    set -e
+                    if command -v node >/dev/null 2>&1 && node -v | grep -q "v18"; then
+                        echo "Node 18 already available"
+                        exit 0
+                    fi
+                    NODE_VER=18.20.4
+                    ARCH=$(uname -m)
+                    case "$ARCH" in x86_64|amd64) ARCH=x64;; aarch64|arm64) ARCH=arm64;; *) ARCH=x64;; esac
+                    OS=$(uname -s)
+                    case "$OS" in Linux) OS=linux;; Darwin) OS=darwin;; *) OS=linux;; esac
+                    FILE="node-v${NODE_VER}-${OS}-${ARCH}"
+                    echo "Installing Node ${NODE_VER} for ${OS}-${ARCH}"
+                    curl -fsSL "https://nodejs.org/dist/v${NODE_VER}/${FILE}.tar.xz" -o node.tar.xz || \
+                    curl -fsSL "https://nodejs.org/dist/v${NODE_VER}/${FILE}.tar.gz" -o node.tar.gz
+                    mkdir -p node
+                    if [ -f node.tar.xz ]; then tar -xJf node.tar.xz -C .; rm node.tar.xz; fi
+                    if [ -f node.tar.gz ]; then tar -xzf node.tar.gz -C .; rm node.tar.gz; fi
+                    mv ${FILE}/* node/ 2>/dev/null || mv ${FILE} node/
+                    rm -rf ${FILE}
+                '''
             }
         }
         stage('Install Dependencies') {
