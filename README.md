@@ -1,87 +1,72 @@
 # afrimart-devops
-End-to-end DevOps deployment for the AfriMart e-commerce platform (Terraform, Ansible, Docker, Kubernetes, CI/CD).
 
-# Afrimart Infrastructure (Terraform)
+End-to-end DevOps deployment for the AfriMart e-commerce platform (Terraform, Ansible, Docker, CI/CD).
 
-This repository contains the Terraform code used to provision the core AWS infrastructure for the **Afrimart** application.
+## Repository Structure
 
-The infrastructure is designed using modular Terraform best practices and supports a scalable, secure, and production-ready setup.
+```
+├── backend/           # Node.js API (Express, Sequelize, Postgres)
+├── frontend/          # React/Vite e-commerce UI
+├── docker/            # Docker Compose for local development
+├── terraform/         # AWS infrastructure (VPC, EC2, RDS, Redis, S3)
+├── ansible/           # Configuration management (Nginx, Node.js, deploy)
+└── docs/              # Documentation
+    └── DEVOPS_GUIDE.md   # Full Terraform + Ansible implementation guide
+```
 
+## Quick Start
 
-## Architecture Overview
+1. **Infrastructure (Terraform)**
+   ```bash
+   cd terraform/environments/dev
+   terraform init
+   terraform apply -var="db_password=YourSecurePassword"
+   # Launch EC2 instance from launch template; note public IP
+   ```
 
-The infrastructure provisions the following AWS resources:
+2. **Server config & deploy (Ansible)**
+   ```bash
+   cd ansible
+   source venv/bin/activate
+   # Edit inventory/static.yml with your EC2 public IP
+   ansible-playbook -i inventory/static.yml playbooks/site.yml
+   cd ../frontend && npm run build && cd ../ansible
+   ansible-playbook -i inventory/static.yml playbooks/deploy-with-local-db.yml
+   ```
 
-- VPC with public and private subnets across 2 Availability Zones
-- Internet Gateway and NAT Gateway
-- Security Groups (ALB, App, Redis)
-- Application Load Balancer
-- EC2 Launch Template
-- IAM Role and Instance Profile for EC2
-- RDS PostgreSQL instance
-- ElastiCache Redis cluster
-- S3 bucket for application uploads
-- Remote-ready modular Terraform structure
+3. **Access**: `http://<EC2_PUBLIC_IP>/`
 
-> Architecture diagram available in `/docs/architecture.png`
+## Documentation
 
-## Terraform Usage
+See **[docs/DEVOPS_GUIDE.md](docs/DEVOPS_GUIDE.md)** for:
 
-### Initialize Terraform
-```bash
-terraform init
+- Terraform architecture, modules, and usage
+- Ansible roles, playbooks, and inventory
+- End-to-end deployment steps
+- Troubleshooting
 
-terraform validate
+## Terraform Outputs (Example)
 
-terraform plan
+After `terraform apply`:
 
-terraform apply
+| Output | Description |
+|--------|-------------|
+| `vpc_id` | VPC ID |
+| `public_subnet_ids` | Public subnets |
+| `private_subnet_ids` | Private subnets |
+| `launch_template_id` | EC2 launch template |
+| `instance_profile_name` | IAM instance profile |
+| `bucket_name` | S3 bucket for uploads |
+| `db_endpoint` | RDS PostgreSQL (sensitive) |
+| `redis_endpoint` | ElastiCache Redis |
 
-terraform destroy
-
----
-
-## 4️⃣ Terraform Outputs (THIS IS WHERE YOUR SCREENSHOT GOES 🔥)
-
-Based on what you showed, add this section **exactly like this**:
-
-```md
-## Terraform Outputs
-
-After successful deployment, Terraform produces the following outputs:
-
-
-```text
-aws_region = eu-north-1
-
-bucket_name = afrimart-uploads
-
-ec2_role_arn = arn:aws:iam::024258572182:role/afrimart-ec2-role
-
-instance_profile_name = afrimart-ec2-profile
-
-launch_template_id = lt-010a62b6eec0f5734c
-
-vpc_id = vpc-026dce62dfb51902b
-
-public_subnet_ids = [
-  subnet-098a4d80d6cb041b8,
-  subnet-01591444762dcebd3
-]
-
-private_subnet_ids = [
-  subnet-075b9c2e143c09a35,
-  subnet-0685041998e3baded
-]
-
----
-
-## 5️⃣ (Optional but high-score bonus) Notes Section
-
-```md
 ## Notes
 
-- EC2 instances are created using a Launch Template.
-- Instances can be launched manually or via an Auto Scaling Group.
-- All private services (RDS, Redis) are deployed inside private subnets.
-- IAM roles follow the principle of least privilege.
+- EC2 instances are created via Launch Template (manual or ASG).
+- RDS and Redis run in private subnets.
+- Ansible supports dynamic AWS EC2 inventory or static IP.
+- For local deploy (no RDS/ElastiCache), use `deploy-with-local-db.yml` which installs Postgres and Redis on EC2.
+
+## License
+
+Private / Educational use.

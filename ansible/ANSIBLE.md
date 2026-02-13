@@ -1,4 +1,6 @@
-# AfriMart Ansible - Phase 2 Configuration Management
+# AfriMart Ansible
+
+Configuration management for AfriMart. For the full Terraform + Ansible deployment guide, see [../docs/DEVOPS_GUIDE.md](../docs/DEVOPS_GUIDE.md).
 
 ## Directory Structure
 
