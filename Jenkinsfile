@@ -1,5 +1,8 @@
 pipeline {
     agent any
+    tools {
+        nodejs 'NodeJS 18'  // Requires NodeJS Plugin + Global Tool Config
+    }
     environment {
         AWS_REGION = 'eu-north-1'
         DOCKER_BUILDKIT = '1'
