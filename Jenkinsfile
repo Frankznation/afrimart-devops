@@ -31,13 +31,12 @@ pipeline {
                     case "$OS" in Linux) OS=linux;; Darwin) OS=darwin;; *) OS=linux;; esac
                     FILE="node-v${NODE_VER}-${OS}-${ARCH}"
                     echo "Installing Node ${NODE_VER} for ${OS}-${ARCH}"
-                    curl -fsSL "https://nodejs.org/dist/v${NODE_VER}/${FILE}.tar.xz" -o node.tar.xz || \
+                    curl -fsSL "https://nodejs.org/dist/v${NODE_VER}/${FILE}.tar.xz" -o node.tar.xz 2>/dev/null || \
                     curl -fsSL "https://nodejs.org/dist/v${NODE_VER}/${FILE}.tar.gz" -o node.tar.gz
-                    mkdir -p node
-                    if [ -f node.tar.xz ]; then tar -xJf node.tar.xz -C .; rm node.tar.xz; fi
-                    if [ -f node.tar.gz ]; then tar -xzf node.tar.gz -C .; rm node.tar.gz; fi
-                    mv ${FILE}/* node/ 2>/dev/null || mv ${FILE} node/
-                    rm -rf ${FILE}
+                    rm -rf node
+                    [ -f node.tar.xz ] && tar -xJf node.tar.xz && rm node.tar.xz
+                    [ -f node.tar.gz ] && tar -xzf node.tar.gz && rm node.tar.gz
+                    mv "${FILE}" node
                 '''
             }
         }
