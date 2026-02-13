@@ -129,8 +129,14 @@ pipeline {
         }
     }
     post {
-        success { echo 'Pipeline succeeded' }
-        failure { echo 'Pipeline failed' }
+        success {
+            echo 'Pipeline succeeded'
+            slackSend(channel: env.SLACK_CHANNEL ?: '#general', color: 'good', message: "✓ ${env.JOB_NAME} #${env.BUILD_NUMBER} succeeded", tokenCredentialId: 'slack-webhook')
+        }
+        failure {
+            echo 'Pipeline failed'
+            slackSend(channel: env.SLACK_CHANNEL ?: '#general', color: 'danger', message: "✗ ${env.JOB_NAME} #${env.BUILD_NUMBER} FAILED: ${env.BUILD_URL}", tokenCredentialId: 'slack-webhook')
+        }
         always { cleanWs(deleteDirs: false) }
     }
 }
