@@ -15,29 +15,17 @@ pipeline {
             }
         }
         stage('Install Dependencies') {
-            agent {
-                docker {
-                    image 'node:18-alpine'
-                    reuseNode true
-                }
-            }
             steps {
-                sh 'cd backend && npm ci'
-                sh 'cd frontend && npm ci'
+                sh 'docker run --rm -v jenkins_home:/var/jenkins_home -w "${WORKSPACE}/backend" node:18-alpine npm ci'
+                sh 'docker run --rm -v jenkins_home:/var/jenkins_home -w "${WORKSPACE}/frontend" node:18-alpine npm ci'
             }
         }
         stage('Run Tests') {
-            agent {
-                docker {
-                    image 'node:18-alpine'
-                    reuseNode true
-                }
-            }
             steps {
-                sh 'cd backend && npx jest --coverage --passWithNoTests'
-                sh 'cd frontend && npm test -- --run'
-                sh 'cd backend && npm run lint'
-                sh 'cd frontend && npm run lint'
+                sh 'docker run --rm -v jenkins_home:/var/jenkins_home -w "${WORKSPACE}/backend" node:18-alpine npx jest --coverage --passWithNoTests'
+                sh 'docker run --rm -v jenkins_home:/var/jenkins_home -w "${WORKSPACE}/frontend" node:18-alpine npm test -- --run'
+                sh 'docker run --rm -v jenkins_home:/var/jenkins_home -w "${WORKSPACE}/backend" node:18-alpine npm run lint'
+                sh 'docker run --rm -v jenkins_home:/var/jenkins_home -w "${WORKSPACE}/frontend" node:18-alpine npm run lint'
             }
         }
         stage('Security Scan') {
