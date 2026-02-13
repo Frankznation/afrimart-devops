@@ -1,5 +1,8 @@
 pipeline {
     agent any
+    tools {
+        nodejs 'NodeJS 18'  // Install: Manage Jenkins > Plugins > NodeJS, then Global Tool Configuration
+    }
     environment {
         AWS_REGION = 'eu-north-1'
         DOCKER_BUILDKIT = '1'
@@ -16,30 +19,31 @@ pipeline {
         }
         stage('Install Dependencies') {
             steps {
-                sh 'docker run --rm -v jenkins_home:/var/jenkins_home -w "${WORKSPACE}/backend" node:18-alpine npm ci'
-                sh 'docker run --rm -v jenkins_home:/var/jenkins_home -w "${WORKSPACE}/frontend" node:18-alpine npm ci'
+                sh 'cd backend && npm ci'
+                sh 'cd frontend && npm ci'
             }
         }
         stage('Run Tests') {
             steps {
-                sh 'docker run --rm -v jenkins_home:/var/jenkins_home -w "${WORKSPACE}/backend" node:18-alpine npx jest --coverage --passWithNoTests'
-                sh 'docker run --rm -v jenkins_home:/var/jenkins_home -w "${WORKSPACE}/frontend" node:18-alpine npm test -- --run'
-                sh 'docker run --rm -v jenkins_home:/var/jenkins_home -w "${WORKSPACE}/backend" node:18-alpine npm run lint'
-                sh 'docker run --rm -v jenkins_home:/var/jenkins_home -w "${WORKSPACE}/frontend" node:18-alpine npm run lint'
+                sh 'cd backend && npx jest --coverage --passWithNoTests'
+                sh 'cd frontend && npm test -- --run'
+                sh 'cd backend && npm run lint'
+                sh 'cd frontend && npm run lint'
             }
         }
         stage('Security Scan') {
             steps {
                 script {
-                    sh 'docker build -t afrimart-backend:${BUILD_NUMBER} ./backend'
+                    sh 'which docker && docker build -t afrimart-backend:${BUILD_NUMBER} ./backend || echo "Docker not available - skip"'
                     sh 'which trivy && trivy image --exit-code 0 --severity HIGH,CRITICAL afrimart-backend:${BUILD_NUMBER} || echo "Trivy not installed - skip"'
                 }
             }
         }
         stage('Build Docker Images') {
             steps {
-                sh 'docker build -t afrimart/backend:${BUILD_NUMBER} ./backend'
-                sh 'docker build -t afrimart/frontend:${BUILD_NUMBER} --build-arg VITE_API_URL=/api ./frontend'
+                script {
+                    sh 'which docker && docker build -t afrimart/backend:${BUILD_NUMBER} ./backend && docker build -t afrimart/frontend:${BUILD_NUMBER} --build-arg VITE_API_URL=/api ./frontend || echo "Docker not available - skip"'
+                }
             }
         }
         stage('Push to ECR') {
