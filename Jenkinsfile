@@ -129,22 +129,8 @@ pipeline {
         }
     }
     post {
-        success {
-            echo 'Pipeline succeeded'
-            script {
-                try { slackSend(channel: env.SLACK_CHANNEL ?: '#builds', color: 'good', message: "✓ ${env.JOB_NAME} #${env.BUILD_NUMBER} succeeded") } catch (e) { echo "Slack: ${e}" }
-                if (env.NOTIFY_EMAIL?.trim()) { try { emailext(subject: "✓ ${env.JOB_NAME} #${env.BUILD_NUMBER} SUCCESS", body: "Build ${env.BUILD_URL}", to: env.NOTIFY_EMAIL) } catch (e) { echo "Email: ${e}" } }
-            }
-        }
-        failure {
-            echo 'Pipeline failed'
-            script {
-                try { slackSend(channel: env.SLACK_CHANNEL ?: '#builds', color: 'danger', message: "✗ ${env.JOB_NAME} #${env.BUILD_NUMBER} FAILED: ${env.BUILD_URL}") } catch (e) { echo "Slack: ${e}" }
-                if (env.NOTIFY_EMAIL?.trim()) { try { emailext(subject: "✗ ${env.JOB_NAME} #${env.BUILD_NUMBER} FAILED", body: "Build ${env.BUILD_URL}", to: env.NOTIFY_EMAIL) } catch (e) { echo "Email: ${e}" } }
-            }
-        }
-        always {
-            cleanWs(deleteDirs: false)
-        }
+        success { echo 'Pipeline succeeded' }
+        failure { echo 'Pipeline failed' }
+        always { cleanWs(deleteDirs: false) }
     }
 }
