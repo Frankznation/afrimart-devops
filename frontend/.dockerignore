@@ -1,13 +1,30 @@
+# Dependencies (installed in builder)
 node_modules
-npm-debug.log
+npm-debug.log*
+
+# Secrets and env
 .env
-.env.local
+.env.*
+
+# Version control
 .git
 .gitignore
-README.md
+
+# IDE and OS
 .vscode
 .idea
-dist
-coverage
-*.log
 .DS_Store
+
+# Build output (rebuilt in container)
+dist
+
+# Tests and coverage
+coverage
+*.test.js
+*.spec.js
+__tests__
+vitest.config.js
+
+# Docs (not needed in image)
+README.md
+*.md

@@ -47,3 +47,14 @@ output "db_endpoint" {
 output "redis_endpoint" {
   value = module.redis.redis_endpoint
 }
+
+# ECR (for CI/CD image push)
+output "ecr_backend_url" {
+  value       = module.ecr.backend_repository_url
+  description = "ECR URL for backend Docker image"
+}
+
+output "ecr_frontend_url" {
+  value       = module.ecr.frontend_repository_url
+  description = "ECR URL for frontend Docker image"
+}

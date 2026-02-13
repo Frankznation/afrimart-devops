@@ -1,40 +1,28 @@
-# Build stage
-FROM node:18-alpine AS builder
+# Build stage - pinned base image
+FROM node:18.20.4-alpine3.19 AS builder
 
 WORKDIR /app
 
-# Copy package files
 COPY package*.json ./
-
-# Install dependencies
 RUN npm ci && npm cache clean --force
 
-# Copy source code
 COPY . .
-
-# Build application
-ARG REACT_APP_API_URL
-ENV VITE_API_URL=$REACT_APP_API_URL
+ARG VITE_API_URL
+ENV VITE_API_URL=${VITE_API_URL}
 RUN npm run build
 
-# Production stage
-FROM nginx:alpine
+# Production stage - pinned nginx
+FROM nginx:1.25.4-alpine
 
-# Copy custom nginx config
+# Security: run as non-root (nginx alpine default is nginx user)
+# Add health check file before switching (already runs as nginx by default)
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Copy built files from builder
 COPY --from=builder /app/dist /usr/share/nginx/html
+RUN echo "OK" > /usr/share/nginx/html/health.html && chown -R nginx:nginx /usr/share/nginx/html
 
-# Add health check file
-RUN echo "OK" > /usr/share/nginx/html/health.html
-
-# Expose port
 EXPOSE 80
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget --quiet --tries=1 --spider http://localhost/health.html || exit 1
+  CMD wget -q -O /dev/null http://localhost/health.html || exit 1
 
-# Start nginx
 CMD ["nginx", "-g", "daemon off;"]

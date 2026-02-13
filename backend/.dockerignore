@@ -1,14 +1,33 @@
+# Dependencies (installed in builder)
 node_modules
-npm-debug.log
+npm-debug.log*
+
+# Secrets and env
 .env
+.env.*
+
+# Version control
 .git
 .gitignore
-README.md
+
+# IDE and OS
 .vscode
 .idea
+.DS_Store
+
+# Tests and coverage
 coverage
+*.test.js
+*.spec.js
+__tests__
+jest.config.js
+
+# Logs and uploads (runtime data)
 logs
 *.log
-.DS_Store
 uploads/*
 !uploads/.gitkeep
+
+# Docs (not needed in image)
+README.md
+*.md

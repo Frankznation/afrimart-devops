@@ -38,12 +38,8 @@ End-to-end DevOps deployment for the AfriMart e-commerce platform (Terraform, An
 
 ## Documentation
 
-See **[docs/DEVOPS_GUIDE.md](docs/DEVOPS_GUIDE.md)** for:
-
-- Terraform architecture, modules, and usage
-- Ansible roles, playbooks, and inventory
-- End-to-end deployment steps
-- Troubleshooting
+- **[docs/DEVOPS_GUIDE.md](docs/DEVOPS_GUIDE.md)** – Terraform + Ansible deployment
+- **[docs/DOCKER_PHASE3.md](docs/DOCKER_PHASE3.md)** – Docker, ECR, containerization (Phase 3)
 
 ## Terraform Outputs (Example)
 

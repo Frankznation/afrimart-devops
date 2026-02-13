@@ -1,9 +1,8 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
   postgres:
-    image: postgres:14-alpine
+    image: postgres:14.11-alpine
     container_name: afrimart-postgres
     restart: unless-stopped
     environment:
@@ -19,10 +18,14 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
-  # Redis
   redis:
-    image: redis:7-alpine
+    image: redis:7.2.4-alpine
     container_name: afrimart-redis
     restart: unless-stopped
     ports:
@@ -34,8 +37,12 @@ services:
       interval: 10s
       timeout: 3s
       retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
-  # Backend API
   backend:
     build:
       context: ../backend
@@ -70,14 +77,18 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
-  # Frontend
   frontend:
     build:
       context: ../frontend
       dockerfile: Dockerfile
       args:
-        REACT_APP_API_URL: http://localhost:5001/api
+        VITE_API_URL: http://localhost:5001/api
     container_name: afrimart-frontend
     restart: unless-stopped
     ports:
@@ -85,14 +96,18 @@ services:
     depends_on:
       - backend
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/health.html"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost/health.html"]
       interval: 30s
       timeout: 10s
       retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
-  # Nginx Reverse Proxy (Optional - for production)
   nginx:
-    image: nginx:alpine
+    image: nginx:1.25.4-alpine
     container_name: afrimart-nginx
     restart: unless-stopped
     ports:
