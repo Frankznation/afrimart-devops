@@ -41,7 +41,8 @@ End-to-end DevOps deployment for the AfriMart e-commerce platform (Terraform, An
 | Document | Description |
 |----------|-------------|
 | [docs/DEVOPS_GUIDE.md](docs/DEVOPS_GUIDE.md) | Terraform + Ansible deployment |
-| [docs/DOCKER_PHASE3.md](docs/DOCKER_PHASE3.md) | **Phase 3: Containerization** – guidelines, ECR, best practices |
+| [docs/DOCKER_PHASE3.md](docs/DOCKER_PHASE3.md) | **Phase 3: Containerization** – Docker, ECR, best practices |
+| [docs/CI_CD_PHASE4.md](docs/CI_CD_PHASE4.md) | **Phase 4: CI/CD Pipeline** – Jenkins, Jenkinsfile, testing, deployment |
 
 ## Phase 3: Docker (Quick Start)
 
