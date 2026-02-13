@@ -1,5 +1,5 @@
 resource "aws_security_group" "alb_sg" {
-  name        = "${var.project}-alb-sg"
+  name        = "${var.project}${var.name_suffix}-alb-sg"
   description = "ALB security group"
   vpc_id      = var.vpc_id
 
@@ -26,7 +26,7 @@ resource "aws_security_group" "alb_sg" {
 }
 
 resource "aws_security_group" "app_sg" {
-  name        = "${var.project}-app-sg"
+  name        = "${var.project}${var.name_suffix}-app-sg"
   description = "App security group"
   vpc_id      = var.vpc_id
 
@@ -54,7 +54,7 @@ resource "aws_security_group" "app_sg" {
 }
 
 resource "aws_security_group" "redis_sg" {
-  name        = "${var.project}-redis-sg"
+  name        = "${var.project}${var.name_suffix}-redis-sg"
   description = "Redis SG"
   vpc_id      = var.vpc_id
 
@@ -73,7 +73,7 @@ resource "aws_security_group" "redis_sg" {
 }
 
 resource "aws_security_group" "db_sg" {
-  name        = "${var.project}-db-sg"
+  name        = "${var.project}${var.name_suffix}-db-sg"
   description = "Database security group"
   vpc_id      = var.vpc_id
 

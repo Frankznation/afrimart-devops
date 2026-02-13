@@ -1,6 +1,6 @@
 # ECR repositories for AfriMart backend and frontend
 resource "aws_ecr_repository" "backend" {
-  name                 = "${var.project_name}/backend"
+  name                 = "${var.project_name}${var.name_suffix}/backend"
   image_tag_mutability = "MUTABLE"
 
   image_scanning_configuration {
@@ -18,7 +18,7 @@ resource "aws_ecr_repository" "backend" {
 }
 
 resource "aws_ecr_repository" "frontend" {
-  name                 = "${var.project_name}/frontend"
+  name                 = "${var.project_name}${var.name_suffix}/frontend"
   image_tag_mutability = "MUTABLE"
 
   image_scanning_configuration {

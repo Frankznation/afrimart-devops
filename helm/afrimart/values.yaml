@@ -1,0 +1,66 @@
+# Default values for AfriMart
+# Override per environment via values-dev.yaml, values-prod.yaml
+
+imageRegistry: ghcr.io/frankznation
+backend:
+  image: afrimart-backend
+  tag: latest
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilization: 70
+  pvc:
+    storage: 5Gi
+    storageClass: gp3
+
+frontend:
+  image: afrimart-frontend
+  tag: latest
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilization: 70
+
+ingress:
+  enabled: true
+  className: alb
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+  # host: afrimart.example.com  # Set per environment
+
+config:
+  NODE_ENV: production
+  PORT: "5000"
+  JWT_EXPIRE: "7d"
+  USE_S3: "true"
+  LOG_LEVEL: info
+
+pdb:
+  enabled: true
+  backend:
+    minAvailable: 1
+  frontend:
+    minAvailable: 1
+
+networkPolicy:
+  enabled: true

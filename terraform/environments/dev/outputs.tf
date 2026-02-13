@@ -2,6 +2,16 @@ output "aws_region" {
   value = var.aws_region
 }
 
+output "workspace" {
+  value       = terraform.workspace
+  description = "Current Terraform workspace (default=dev, staging, prod)"
+}
+
+output "environment" {
+  value       = local.environment
+  description = "Environment name used for resource naming"
+}
+
 output "project_name" {
   value = var.project_name
 }
@@ -32,6 +42,16 @@ output "instance_profile_name" {
   value = module.iam.instance_profile_name
 }
 
+output "devops_user_arn" {
+  value       = module.iam_users.devops_user_arn
+  description = "ARN of the DevOps IAM user (for Terraform/infrastructure)"
+}
+
+output "devops_user_name" {
+  value       = module.iam_users.devops_user_name
+  description = "Name of the DevOps IAM user"
+}
+
 # EC2
 output "launch_template_id" {
   value = module.ec2.launch_template_id
@@ -57,4 +77,10 @@ output "ecr_backend_url" {
 output "ecr_frontend_url" {
   value       = module.ecr.frontend_repository_url
   description = "ECR URL for frontend Docker image"
+}
+
+# ALB (when enable_alb = true)
+output "alb_dns_name" {
+  value       = var.enable_alb ? module.alb[0].alb_dns_name : "ALB disabled"
+  description = "ALB DNS name for application access"
 }

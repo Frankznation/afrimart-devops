@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: afrimart-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ include "afrimart.name" . }}
+data:
+  NODE_ENV: {{ .Values.config.NODE_ENV | quote }}
+  PORT: {{ .Values.config.PORT | quote }}
+  JWT_EXPIRE: {{ .Values.config.JWT_EXPIRE | quote }}
+  USE_S3: {{ .Values.config.USE_S3 | quote }}
+  LOG_LEVEL: {{ .Values.config.LOG_LEVEL | quote }}

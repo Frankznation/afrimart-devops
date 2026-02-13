@@ -31,3 +31,8 @@ variable "public_subnet_id" {
 variable "key_name" {
   type = string
 }
+
+variable "name_suffix" {
+  type    = string
+  default = ""
+}

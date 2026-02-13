@@ -8,10 +8,14 @@ End-to-end DevOps deployment for the AfriMart e-commerce platform (Terraform, An
 ├── backend/           # Node.js API (Express, Sequelize, Postgres)
 ├── frontend/          # React/Vite e-commerce UI
 ├── docker/            # Docker Compose for local development
-├── terraform/         # AWS infrastructure (VPC, EC2, RDS, Redis, S3)
+├── k8s/               # Kubernetes manifests (Phase 5)
+├── helm/              # Helm charts for AfriMart
+├── terraform/         # Phase 1: AWS infrastructure
+│   ├── backend/       # S3 + DynamoDB for state
+│   ├── modules/       # VPC, RDS, Redis, S3, ALB, EC2, IAM, ECR, EKS
+│   └── environments/  # dev, eks
 ├── ansible/           # Configuration management (Nginx, Node.js, deploy)
 └── docs/              # Documentation
-    └── DEVOPS_GUIDE.md   # Full Terraform + Ansible implementation guide
 ```
 
 ## Quick Start
@@ -20,8 +24,8 @@ End-to-end DevOps deployment for the AfriMart e-commerce platform (Terraform, An
    ```bash
    cd terraform/environments/dev
    terraform init
-   terraform apply -var="db_password=YourSecurePassword"
-   # Launch EC2 instance from launch template; note public IP
+   terraform apply -var='db_password=YourSecurePassword' -auto-approve
+   # EC2 instance is created; get public IP for app deploy
    ```
 
 2. **Server config & deploy (Ansible)**
@@ -36,16 +40,73 @@ End-to-end DevOps deployment for the AfriMart e-commerce platform (Terraform, An
 
 3. **Access**: `http://<EC2_PUBLIC_IP>/`
 
+## Phase 1: Terraform (Quick Start)
+
+```bash
+# Bootstrap state (optional - for remote state)
+cd terraform/backend && terraform init && terraform apply
+
+# Deploy dev infrastructure (run from project root)
+cd terraform/environments/dev
+terraform init
+terraform apply -var='db_password=YourSecurePassword' -auto-approve -input=false
+```
+
+> **Tip:** Use single quotes for `db_password` if it contains `!` to avoid shell interpretation.
+
+**Variables:** `enable_alb` (default false), `rds_multi_az`, `rds_instance_class`. See [docs/TERRAFORM_PHASE1.md](docs/TERRAFORM_PHASE1.md).
+
+**Workspaces:** Use `terraform workspace` for dev/staging/production:
+```bash
+terraform workspace list             # default=dev, staging, prod
+terraform workspace select default   # dev (current resources)
+terraform workspace select staging   # staging
+terraform workspace new staging      # create new workspace (first time)
+```
+
+**Get public URL (EC2):**
+```bash
+aws ec2 describe-instances --filters "Name=tag:Name,Values=afrimart*app*" "Name=instance-state-name,Values=running" --query "Reservations[*].Instances[*].PublicIpAddress" --output text --region eu-north-1
+```
+Site URL: `http://<public-ip>/` (after Ansible deploy)
+
 ## Documentation
 
 | Document | Description |
 |----------|-------------|
+| [docs/TERRAFORM_PHASE1.md](docs/TERRAFORM_PHASE1.md) | **Phase 1: Infrastructure** – Terraform modules, commands |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Architecture diagram (Mermaid) |
+| [docs/COST_ESTIMATION.md](docs/COST_ESTIMATION.md) | Cost estimation spreadsheet |
 | [docs/DEVOPS_GUIDE.md](docs/DEVOPS_GUIDE.md) | Terraform + Ansible deployment |
 | [docs/DOCKER_PHASE3.md](docs/DOCKER_PHASE3.md) | **Phase 3: Containerization** – Docker, ECR, best practices |
 | [docs/IMAGE_SIZE_REPORT.md](docs/IMAGE_SIZE_REPORT.md) | **Phase 3: Image size comparison** – optimization report |
 | [docs/CI_CD_PHASE4.md](docs/CI_CD_PHASE4.md) | **Phase 4: CI/CD Pipeline** – Jenkins, Jenkinsfile, testing, deployment |
 | [docs/JENKINS_PIPELINE_GUIDE.md](docs/JENKINS_PIPELINE_GUIDE.md) | **Jenkins setup & troubleshooting** – credentials, Slack, Manual Approval |
 | [docs/JENKINS_SETUP.md](docs/JENKINS_SETUP.md) | Quick Jenkins setup reference |
+| [docs/KUBERNETES_PHASE5.md](docs/KUBERNETES_PHASE5.md) | **Phase 5: Kubernetes** – EKS, manifests, Helm |
+| [docs/RESOURCE_UTILIZATION.md](docs/RESOURCE_UTILIZATION.md) | **Phase 5: Resource utilization** – sizing analysis |
+
+## Phase 5: Kubernetes / EKS (Quick Start)
+
+```bash
+# 1. Deploy EKS cluster
+cd terraform/environments/eks
+terraform init
+terraform apply -var="db_password=YourSecurePassword"
+
+# 2. Configure kubectl
+aws eks update-kubeconfig --region eu-north-1 --name afrimart-eks
+
+# 3. Create secret (edit values)
+cp k8s/secret.yaml.example k8s/secret.yaml
+# Edit k8s/secret.yaml with RDS, Redis, JWT_SECRET from terraform output
+
+# 4. Apply manifests
+./scripts/k8s-apply.sh
+# Or use Helm: helm install afrimart helm/afrimart -n afrimart -f helm/afrimart/values-dev.yaml
+```
+
+See [docs/KUBERNETES_PHASE5.md](docs/KUBERNETES_PHASE5.md) for full setup including AWS Load Balancer Controller.
 
 ## Phase 3: Docker (Quick Start)
 
@@ -76,6 +137,8 @@ After `terraform apply`:
 | `bucket_name` | S3 bucket for uploads |
 | `db_endpoint` | RDS PostgreSQL (sensitive) |
 | `redis_endpoint` | ElastiCache Redis |
+| `devops_user_name` | IAM user for Terraform/infrastructure |
+| `workspace` | Current Terraform workspace |
 
 ## Notes
 

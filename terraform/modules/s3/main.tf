@@ -1,5 +1,5 @@
 resource "aws_s3_bucket" "this" {
-  bucket = "${var.project_name}-uploads"
+  bucket = "${var.project_name}-uploads${var.name_suffix}"
 }
 
 resource "aws_s3_bucket_versioning" "this" {

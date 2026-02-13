@@ -9,3 +9,8 @@ variable "private_subnet_ids" {
 variable "redis_sg_id" {
   type = string
 }
+
+variable "name_suffix" {
+  type    = string
+  default = ""
+}

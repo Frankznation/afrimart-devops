@@ -1,0 +1,39 @@
+# Production environment overrides
+backend:
+  replicaCount: 3
+  tag: latest
+  hpa:
+    minReplicas: 3
+    maxReplicas: 15
+    targetCPUUtilization: 65
+  resources:
+    requests:
+      cpu: 200m
+      memory: 384Mi
+    limits:
+      cpu: 1000m
+      memory: 768Mi
+
+frontend:
+  replicaCount: 3
+  hpa:
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilization: 65
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+
+pdb:
+  backend:
+    minAvailable: 2
+  frontend:
+    minAvailable: 2
+
+ingress:
+  enabled: true
+  # host: afrimart.example.com  # Set your domain

@@ -4,7 +4,7 @@ resource "aws_vpc" "this" {
   enable_dns_hostnames = true
 
   tags = {
-    Name = "${var.project_name}-vpc"
+    Name = "${var.project_name}${var.name_suffix}-vpc"
   }
 }
 
@@ -12,7 +12,7 @@ resource "aws_internet_gateway" "this" {
   vpc_id = aws_vpc.this.id
 
   tags = {
-    Name = "${var.project_name}-igw"
+    Name = "${var.project_name}${var.name_suffix}-igw"
   }
 }
 
@@ -25,9 +25,13 @@ resource "aws_subnet" "public" {
   availability_zone       = data.aws_availability_zones.available.names[count.index]
   map_public_ip_on_launch = true
 
-  tags = {
-    Name = "${var.project_name}-public-${count.index + 1}"
-  }
+  tags = merge(
+    { Name = "${var.project_name}${var.name_suffix}-public-${count.index + 1}" },
+    var.eks_cluster_name != "" ? {
+      "kubernetes.io/cluster/${var.eks_cluster_name}" = "shared"
+      "kubernetes.io/role/elb"                        = "1"
+    } : {}
+  )
 }
 
 resource "aws_subnet" "private" {
@@ -36,9 +40,13 @@ resource "aws_subnet" "private" {
   cidr_block        = cidrsubnet(var.vpc_cidr, 4, count.index + 2)
   availability_zone = data.aws_availability_zones.available.names[count.index]
 
-  tags = {
-    Name = "${var.project_name}-private-${count.index + 1}"
-  }
+  tags = merge(
+    { Name = "${var.project_name}${var.name_suffix}-private-${count.index + 1}" },
+    var.eks_cluster_name != "" ? {
+      "kubernetes.io/cluster/${var.eks_cluster_name}"     = "shared"
+      "kubernetes.io/role/internal-elb"                   = "1"
+    } : {}
+  )
 }
 
 resource "aws_eip" "nat" {
@@ -58,6 +66,27 @@ resource "aws_nat_gateway" "this" {
   }
 }
 
+# Public route table - routes to Internet Gateway
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.this.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.this.id
+  }
+
+  tags = {
+    Name = "${var.project_name}-public-rt"
+  }
+}
+
+resource "aws_route_table_association" "public" {
+  count          = length(aws_subnet.public)
+  subnet_id      = aws_subnet.public[count.index].id
+  route_table_id = aws_route_table.public.id
+}
+
+# Private route table - routes to NAT Gateway
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.this.id
 

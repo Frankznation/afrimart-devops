@@ -18,3 +18,8 @@ variable "target_instance_id" {
   type = string
 }
 
+variable "name_suffix" {
+  type    = string
+  default = ""
+}
+

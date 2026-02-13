@@ -1,0 +1,26 @@
+# Development environment overrides
+backend:
+  replicaCount: 1
+  tag: latest
+  hpa:
+    enabled: false
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+frontend:
+  replicaCount: 1
+  tag: latest
+  hpa:
+    enabled: false
+
+pdb:
+  enabled: false
+
+networkPolicy:
+  enabled: false
+
+ingress:
+  enabled: true
+  host: ""  # Use ALB default hostname

@@ -1,5 +1,5 @@
 resource "aws_launch_template" "this" {
-  name_prefix   = "${var.project}-lt-"
+  name_prefix   = "${var.project}${var.name_suffix}-lt-"
   image_id      = var.ami_id
   instance_type = var.instance_type
   key_name      = "afrimarts-key"
@@ -15,7 +15,7 @@ resource "aws_launch_template" "this" {
   tag_specifications {
     resource_type = "instance"
     tags = {
-      Name    = "${var.project}-app"
+      Name    = "${var.project}${var.name_suffix}-app"
       Project = var.project
     }
   }
@@ -30,6 +30,6 @@ resource "aws_instance" "app" {
   subnet_id = var.public_subnet_id
 
   tags = {
-    Name = "${var.project}-app-ec2"
+    Name = "${var.project}${var.name_suffix}-app-ec2"
   }
 }

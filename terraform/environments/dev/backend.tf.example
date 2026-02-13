@@ -1,0 +1,13 @@
+# Rename to backend.tf and run: terraform init -migrate-state
+# Prerequisites: cd ../../backend && terraform apply
+# Then replace YOUR_ACCOUNT_ID with: aws sts get-caller-identity --query Account --output text
+
+terraform {
+  backend "s3" {
+    bucket         = "afrimart-terraform-state-YOUR_ACCOUNT_ID"
+    key            = "dev/terraform.tfstate"
+    region         = "eu-north-1"
+    dynamodb_table = "afrimart-terraform-lock"
+    encrypt        = true
+  }
+}

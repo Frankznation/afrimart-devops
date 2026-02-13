@@ -24,3 +24,6 @@ ansible/logs/
 
 # Local scripts with secrets (do not commit)
 scripts/*.local.groovy
+
+# Kubernetes secrets (never commit)
+k8s/secret.yaml

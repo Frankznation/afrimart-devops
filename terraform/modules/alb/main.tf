@@ -1,18 +1,18 @@
 resource "aws_lb" "this" {
-  name               = "${var.project}-alb"
+  name               = "${var.project}${var.name_suffix}-alb"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [var.alb_sg_id]
   subnets            = var.public_subnet_ids
 
   tags = {
-    Name    = "${var.project}-alb"
+    Name    = "${var.project}${var.name_suffix}-alb"
     Project = var.project
   }
 }
 
 resource "aws_lb_target_group" "app" {
-  name     = "${var.project}-tg"
+  name     = "${var.project}${var.name_suffix}-tg"
   port     = 3000
   protocol = "HTTP"
   vpc_id   = var.vpc_id
@@ -27,7 +27,7 @@ resource "aws_lb_target_group" "app" {
   }
 
   tags = {
-    Name    = "${var.project}-tg"
+    Name    = "${var.project}${var.name_suffix}-tg"
     Project = var.project
   }
 }
