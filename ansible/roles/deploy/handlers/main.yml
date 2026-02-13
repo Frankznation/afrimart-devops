@@ -1,0 +1,10 @@
+---
+- name: Restart backend
+  ansible.builtin.shell: |
+    cd {{ backend_dir }} && pm2 restart afrimart-backend || pm2 start src/server.js --name afrimart-backend
+    pm2 save
+  args:
+    executable: /bin/bash
+  become_user: "{{ app_user }}"
+  environment:
+    HOME: "{{ app_home }}"

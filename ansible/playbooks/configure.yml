@@ -1,0 +1,12 @@
+---
+# Configure servers (no app deployment)
+# Usage: ansible-playbook playbooks/configure.yml
+- name: Configure AfriMart infrastructure
+  hosts: all
+  become: yes
+  roles:
+    - common
+    - nodejs
+    - nginx
+    - security
+    - monitoring

@@ -1,5 +1,5 @@
 const { sequelize } = require('../config/database');
-const models = require('../models');
+const { User, Product, Order, OrderItem, Cart } = require('../models');
 
 const migrate = async () => {
   try {
@@ -8,8 +8,12 @@ const migrate = async () => {
     await sequelize.authenticate();
     console.log('✅ Database connection established');
 
-    // Sync all models
-    await sequelize.sync({ force: false, alter: true });
+    // Sync in dependency order (parents before children)
+    await User.sync({ alter: true });
+    await Product.sync({ alter: true });
+    await Order.sync({ alter: true });
+    await Cart.sync({ alter: true });
+    await OrderItem.sync({ alter: true });
     console.log('✅ All models synchronized successfully');
 
     console.log('✨ Migration completed successfully!');

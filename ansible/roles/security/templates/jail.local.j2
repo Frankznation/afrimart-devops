@@ -1,0 +1,9 @@
+# AfriMart fail2ban - SSH protection
+[sshd]
+enabled = true
+port = ssh
+filter = sshd
+logpath = /var/log/secure
+maxretry = 3
+bantime = 3600
+findtime = 600

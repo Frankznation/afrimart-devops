@@ -15,9 +15,10 @@ module "vpc" {
 }
 
 module "security_groups" {
-  source  = "../../modules/security-groups"
-  project = var.project_name
-  vpc_id  = module.vpc.vpc_id
+  source            = "../../modules/security-groups"
+  project           = var.project_name
+  vpc_id            = module.vpc.vpc_id
+  ssh_allowed_cidr  = var.ssh_allowed_cidr
 }
 
 module "rds" {
@@ -26,7 +27,8 @@ module "rds" {
   vpc_id             = module.vpc.vpc_id
   private_subnet_ids = module.vpc.private_subnet_ids
   db_username        = "afrimatadmin"
-  db_password        = "SuperSecret123!"
+  db_password        = var.db_password
+  db_sg_id           = module.security_groups.db_sg_id
 }
 
 module "redis" {
@@ -57,3 +59,7 @@ module "ec2" {
   public_subnet_id       = module.vpc.public_subnet_ids[0]
   key_name               = "afrimarts-key"
 }
+
+// ALB module is defined but disabled here because this AWS account
+// does not currently support creating load balancers (OperationNotPermitted).
+// To enable later, add a module block for "../../modules/alb" and apply.

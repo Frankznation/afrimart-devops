@@ -1,0 +1,4 @@
+---
+run_migrations: true
+backend_install_deps: true
+node_version: "v20"

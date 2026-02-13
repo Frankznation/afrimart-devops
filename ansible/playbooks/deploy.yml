@@ -1,0 +1,15 @@
+---
+# Deploy AfriMart application
+# Prerequisites:
+#   1. Run configure.yml first
+#   2. Build frontend: cd frontend && npm run build
+#   3. Set group_vars/dev.yml with RDS/Redis endpoints and db_password_secret
+# Usage: ansible-playbook playbooks/deploy.yml
+- name: Deploy AfriMart application
+  hosts: all
+  become: yes
+  vars:
+    local_backend_path: "{{ playbook_dir }}/../../backend"
+    frontend_build_path: "{{ playbook_dir }}/../../frontend/dist"
+  roles:
+    - deploy

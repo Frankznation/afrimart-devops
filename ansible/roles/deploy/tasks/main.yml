@@ -1,0 +1,164 @@
+---
+- name: Ensure app directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: "0755"
+  loop:
+    - "{{ backend_dir }}"
+    - "{{ frontend_dir }}"
+    - "{{ nginx_root }}/frontend"
+    - "{{ backend_dir }}/logs"
+    - "{{ backend_dir }}/uploads"
+
+- name: Remove stale temp deploy dir (if root-owned from previous run)
+  ansible.builtin.file:
+    path: "{{ backend_deploy_tmp }}"
+    state: absent
+
+- name: Ensure temp deploy dir exists on remote (ec2-user writable)
+  ansible.builtin.file:
+    path: "{{ backend_deploy_tmp }}"
+    state: directory
+    mode: "0755"
+  become: false
+
+- name: Copy backend application to temp dir (ec2-user can write)
+  ansible.builtin.shell: |
+    rsync -avz -e "ssh -i {{ ansible_ssh_private_key_file | expanduser }} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" \
+      --exclude=node_modules --exclude=logs --exclude=.env --exclude=uploads \
+      "{{ local_backend_path }}/" "{{ ansible_user }}@{{ ansible_host }}:{{ backend_deploy_tmp }}/"
+  args:
+    executable: /bin/bash
+  delegate_to: localhost
+  become: false
+
+- name: Sync backend from temp to app dir (as root)
+  ansible.builtin.synchronize:
+    src: "{{ backend_deploy_tmp }}/"
+    dest: "{{ backend_dir }}/"
+    rsync_opts:
+      - "--exclude=node_modules"
+      - "--exclude=logs"
+      - "--exclude=.env"
+      - "--exclude=uploads"
+    delete: no
+  delegate_to: "{{ inventory_hostname }}"
+
+- name: Remove temp deploy dir
+  ansible.builtin.file:
+    path: "{{ backend_deploy_tmp }}"
+    state: absent
+
+- name: Fix backend ownership
+  ansible.builtin.file:
+    path: "{{ backend_dir }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    recurse: yes
+
+- name: Create backend .env from template
+  ansible.builtin.template:
+    src: backend.env.j2
+    dest: "{{ backend_dir }}/.env"
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: "0600"
+  notify: Restart backend
+
+- name: Install backend dependencies
+  ansible.builtin.command: npm install --omit=dev
+  args:
+    chdir: "{{ backend_dir }}"
+  become_user: "{{ app_user }}"
+  environment:
+    HOME: "{{ app_home }}"
+    PATH: "/usr/local/bin:/usr/bin"
+  when: backend_install_deps | default(true) | bool
+
+- name: Ensure frontend temp deploy dir exists on remote
+  ansible.builtin.file:
+    path: "{{ frontend_deploy_tmp }}"
+    state: directory
+    mode: "0755"
+  become: false
+  when: frontend_build_path is defined and frontend_build_path | length > 0
+
+- name: Copy frontend build to temp dir
+  ansible.builtin.shell: |
+    rsync -avz -e "ssh -i {{ ansible_ssh_private_key_file | expanduser }} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" \
+      --delete "{{ frontend_build_path }}/" "{{ ansible_user }}@{{ ansible_host }}:{{ frontend_deploy_tmp }}/"
+  args:
+    executable: /bin/bash
+  delegate_to: localhost
+  become: false
+  when: frontend_build_path is defined and frontend_build_path | length > 0
+
+- name: Sync frontend from temp to nginx root (as root)
+  ansible.builtin.synchronize:
+    src: "{{ frontend_deploy_tmp }}/"
+    dest: "{{ nginx_root }}/frontend/"
+    rsync_opts: ["--delete"]
+  delegate_to: "{{ inventory_hostname }}"
+  when: frontend_build_path is defined and frontend_build_path | length > 0
+
+- name: Remove frontend temp deploy dir
+  ansible.builtin.file:
+    path: "{{ frontend_deploy_tmp }}"
+    state: absent
+  when: frontend_build_path is defined and frontend_build_path | length > 0
+
+- name: Set ownership for nginx root
+  ansible.builtin.file:
+    path: "{{ nginx_root }}/frontend"
+    state: directory
+    owner: nginx
+    group: nginx
+    recurse: yes
+
+- name: Run database migrations
+  ansible.builtin.command: npm run migrate
+  args:
+    chdir: "{{ backend_dir }}"
+  become_user: "{{ app_user }}"
+  environment:
+    HOME: "{{ app_home }}"
+    PATH: "/usr/local/bin:/usr/bin"
+  when: run_migrations | default(true) | bool
+
+- name: Seed database with sample products (if empty)
+  ansible.builtin.command: npm run seed
+  args:
+    chdir: "{{ backend_dir }}"
+  become_user: "{{ app_user }}"
+  environment:
+    HOME: "{{ app_home }}"
+    PATH: "/usr/local/bin:/usr/bin"
+  when: run_seed | default(true) | bool
+  ignore_errors: yes
+
+- name: Start backend with PM2
+  ansible.builtin.shell: |
+    cd {{ backend_dir }}
+    pm2 delete afrimart-backend 2>/dev/null || true
+    pm2 start src/server.js --name afrimart-backend -i 1
+    pm2 save
+  args:
+    executable: /bin/bash
+  become_user: "{{ app_user }}"
+  environment:
+    HOME: "{{ app_home }}"
+    PATH: "/usr/local/bin:/usr/bin"
+  register: pm2_start
+  changed_when: pm2_start.rc == 0
+  failed_when: false
+
+- name: Save PM2 process list
+  ansible.builtin.command: pm2 save
+  become_user: "{{ app_user }}"
+  environment:
+    HOME: "{{ app_home }}"
+    PATH: "/usr/local/bin:/usr/bin"

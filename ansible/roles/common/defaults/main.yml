@@ -1,0 +1,7 @@
+---
+app_user: afrimart
+app_group: afrimart
+app_home: /opt/afrimart
+backend_dir: "{{ app_home }}/backend"
+frontend_dir: "{{ app_home }}/frontend"
+nginx_root: /var/www/afrimart

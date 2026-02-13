@@ -36,3 +36,14 @@ output "instance_profile_name" {
 output "launch_template_id" {
   value = module.ec2.launch_template_id
 }
+
+# RDS (for Ansible group_vars)
+output "db_endpoint" {
+  value     = module.rds.db_endpoint
+  sensitive = true
+}
+
+# Redis (for Ansible group_vars)
+output "redis_endpoint" {
+  value = module.redis.redis_endpoint
+}

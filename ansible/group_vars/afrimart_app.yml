@@ -1,0 +1,7 @@
+---
+# AfriMart app server overrides
+# For local deploy (no RDS/Redis): leave rds/redis empty to use localhost
+rds_endpoint: ""
+redis_endpoint: ""
+db_password_secret: "AfrimartLocalDB2024!"
+jwt_secret: "afrimart-jwt-secret-change-in-production"

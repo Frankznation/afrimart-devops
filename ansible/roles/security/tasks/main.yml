@@ -1,0 +1,62 @@
+---
+- name: Enable EPEL for fail2ban (AL2)
+  ansible.builtin.command: amazon-linux-extras install epel -y
+  args:
+    creates: /etc/yum.repos.d/epel.repo
+  when: ansible_os_family == "RedHat"
+
+- name: Install firewalld and fail2ban
+  ansible.builtin.yum:
+    name:
+      - firewalld
+      - fail2ban
+      - fail2ban-firewalld
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Start and enable firewalld
+  ansible.builtin.service:
+    name: firewalld
+    state: started
+    enabled: yes
+  when: ansible_os_family == "RedHat"
+
+- name: Configure firewalld - allow SSH, HTTP, HTTPS
+  ansible.posix.firewalld:
+    port: "{{ item }}/tcp"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  loop:
+    - "22"
+    - "80"
+    - "443"
+  when: ansible_os_family == "RedHat"
+
+- name: Create fail2ban jail for SSH
+  ansible.builtin.template:
+    src: jail.local.j2
+    dest: /etc/fail2ban/jail.d/afrimart.local
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart fail2ban
+
+- name: Harden SSH - disable root login and password auth
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "^{{ item.regexp }}$"
+    line: "{{ item.line }}"
+    state: present
+  loop:
+    - { regexp: "^#?PermitRootLogin", line: "PermitRootLogin no" }
+    - { regexp: "^#?PasswordAuthentication", line: "PasswordAuthentication no" }
+    - { regexp: "^#?PubkeyAuthentication", line: "PubkeyAuthentication yes" }
+    - { regexp: "^#?MaxAuthTries", line: "MaxAuthTries 3" }
+  notify: Restart sshd
+
+- name: Start and enable fail2ban
+  ansible.builtin.service:
+    name: fail2ban
+    state: started
+    enabled: yes

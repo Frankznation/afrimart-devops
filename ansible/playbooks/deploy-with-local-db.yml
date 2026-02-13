@@ -1,0 +1,62 @@
+---
+# Deploy AfriMart with Postgres + Redis on EC2 (no RDS/ElastiCache)
+# Prerequisites: Run site.yml first. Build frontend: cd frontend && npm run build
+# Usage: ansible-playbook -i inventory/static.yml playbooks/deploy-with-local-db.yml
+- name: Install Postgres and Redis on EC2
+  hosts: all
+  become: true
+  roles:
+    - postgres_redis
+
+- name: Deploy AfriMart application
+  hosts: all
+  become: true
+  vars:
+    project_root: "{{ playbook_dir }}/../.."
+    local_backend_path: "{{ project_root }}/backend"
+    frontend_build_path: "{{ project_root }}/frontend/dist"
+    app_user: afrimart
+    app_group: afrimart
+    app_home: /opt/afrimart
+    backend_dir: "{{ app_home }}/backend"
+    frontend_dir: "{{ app_home }}/frontend"
+    backend_deploy_tmp: "/tmp/afrimart-backend-deploy"
+    frontend_deploy_tmp: "/tmp/afrimart-frontend-deploy"
+    nginx_root: /var/www/afrimart
+    db_host: localhost
+    db_port: 5432
+    db_name: afrimart
+    db_user: afrimatadmin
+    db_password: "AfrimartLocalDB2024!"
+    redis_host: localhost
+    redis_port: 6379
+    redis_url: "redis://localhost:6379"
+    jwt_secret: "afrimart-jwt-secret-change-in-production"
+    node_env: production
+    backend_port: 5000
+    aws_region: eu-north-1
+    s3_bucket: afrimart-uploads
+  pre_tasks:
+    - name: Resolve backend path
+      ansible.builtin.shell: python3 -c "import os; print(os.path.abspath('{{ playbook_dir }}/../../backend'))"
+      register: _backend_path
+      changed_when: false
+      delegate_to: localhost
+      run_once: true
+      become: false
+
+    - name: Resolve frontend path
+      ansible.builtin.shell: python3 -c "import os; print(os.path.abspath('{{ playbook_dir }}/../../frontend/dist'))"
+      register: _frontend_path
+      changed_when: false
+      delegate_to: localhost
+      run_once: true
+      become: false
+
+    - name: Set paths for deploy
+      set_fact:
+        local_backend_path: "{{ _backend_path.stdout }}"
+        frontend_build_path: "{{ _frontend_path.stdout }}"
+
+  roles:
+    - deploy

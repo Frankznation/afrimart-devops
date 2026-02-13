@@ -1,0 +1,12 @@
+---
+# AfriMart - Full site playbook
+# Usage: ansible-playbook playbooks/site.yml -l tag_Name_afrimart_app_ec2
+- name: Configure AfriMart application servers
+  hosts: all
+  become: yes
+  roles:
+    - common
+    - nodejs
+    - nginx
+    - security
+    - monitoring

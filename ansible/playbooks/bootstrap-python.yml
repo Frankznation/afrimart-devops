@@ -1,0 +1,26 @@
+---
+# Bootstrap playbook: install Python 3.8 on EC2 (Amazon Linux 2)
+# Run this BEFORE configure.yml when target has Python 3.7.
+# Ansible 2.20+ requires Python 3.8+ on managed hosts.
+# Uses 'raw' module - no Python required on remote.
+# Note: Python 3.9 is not in AL2 repos; 3.8 is via amazon-linux-extras.
+#
+# Usage: ansible-playbook -i inventory/static.yml playbooks/bootstrap-python.yml
+
+- name: Bootstrap Python 3.8 on Amazon Linux 2
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Enable and install Python 3.8 via amazon-linux-extras
+      raw: |
+        amazon-linux-extras enable python3.8
+        yum install -y python3.8
+      register: install_result
+      changed_when: install_result.rc == 0
+
+    - name: Verify Python 3.8 is available
+      raw: test -x /usr/bin/python3.8 && /usr/bin/python3.8 --version
+      register: verify
+      failed_when: verify.rc != 0

@@ -1,0 +1,5 @@
+rds_endpoint: "afrimart-postgres.c3eg66ci2w58.eu-north-1.rds.amazonaws.com"
+redis_endpoint: "afrimart-redis.zqkdwh.0001.eun1.cache.amazonaws.com"
+bucket_name: afrimart-uploads
+db_password_secret: "ChangeMe-StrongPassword123!"
+jwt_secret: "bJilnJw45K/bvOnr86z/fiJPMKkPBQkCGwD6b9bLK0g="

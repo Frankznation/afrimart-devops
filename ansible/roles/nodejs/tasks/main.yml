@@ -1,0 +1,42 @@
+---
+# Use nvm on Amazon Linux 2 - NodeSource requires glibc 2.28, AL2 has 2.26
+- name: Install Node.js 14 via nvm (AL2 glibc 2.26 compatible)
+  ansible.builtin.shell: |
+    set -e
+    export NVM_DIR="/opt/nvm"
+    mkdir -p "$NVM_DIR"
+    curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | NVM_DIR="$NVM_DIR" bash
+    . "$NVM_DIR/nvm.sh"
+    nvm install 14
+    nvm alias default 14
+    ln -sf "$NVM_DIR/versions/node/$(ls $NVM_DIR/versions/node)/bin/node" /usr/local/bin/node
+    ln -sf "$NVM_DIR/versions/node/$(ls $NVM_DIR/versions/node)/bin/npm" /usr/local/bin/npm
+    ln -sf "$NVM_DIR/versions/node/$(ls $NVM_DIR/versions/node)/bin/npx" /usr/local/bin/npx
+  args:
+    creates: /usr/local/bin/node
+  when: ansible_os_family == "RedHat"
+
+- name: Install PM2 globally
+  ansible.builtin.shell: |
+    export NVM_DIR="/opt/nvm" && . "$NVM_DIR/nvm.sh" && npm install -g pm2
+  when: ansible_os_family == "RedHat"
+
+- name: Create Node/npm/pm2 symlinks for systemd
+  ansible.builtin.shell: |
+    NODE_VER=$(ls -1 /opt/nvm/versions/node 2>/dev/null | head -1)
+    ln -sf /opt/nvm/versions/node/$NODE_VER/bin/node /usr/local/bin/node
+    ln -sf /opt/nvm/versions/node/$NODE_VER/bin/npm /usr/local/bin/npm
+    ln -sf /opt/nvm/versions/node/$NODE_VER/bin/npx /usr/local/bin/npx
+    ln -sf /opt/nvm/versions/node/$NODE_VER/bin/pm2 /usr/local/bin/pm2
+  args:
+    creates: /usr/local/bin/pm2
+  when: ansible_os_family == "RedHat"
+
+- name: Set PM2 to start on boot
+  ansible.builtin.shell: /usr/local/bin/pm2 startup systemd -u {{ app_user }} --hp {{ app_home }}
+  environment:
+    PATH: "/usr/local/bin:{{ ansible_env.PATH | default('') }}"
+  args:
+    creates: /etc/systemd/system/pm2-{{ app_user }}.service
+  changed_when: false
+  ignore_errors: yes

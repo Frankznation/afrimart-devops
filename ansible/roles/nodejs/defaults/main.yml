@@ -1,0 +1,4 @@
+---
+nodejs_version: "20"
+app_user: afrimart
+app_home: /opt/afrimart

@@ -1,6 +1,8 @@
 .env
 node_modules
 .DS_Store
+ansible/venv/
+frontend/dist/
 terraform/.terraform
 terraform/*.tfstate*
 
@@ -17,4 +19,5 @@ crash.*.log
 
 # Logs
 backend/logs/
+ansible/logs/
 *.log

@@ -1,17 +1,15 @@
 const { User, Product } = require('../models');
-const bcrypt = require('bcryptjs');
 
 const seedData = async () => {
   try {
     console.log('🌱 Starting database seeding...');
 
-    // Create admin user
-    const adminPassword = await bcrypt.hash('admin123', 10);
-    const admin = await User.findOrCreate({
+    // Create admin user (User model hashes password in beforeCreate)
+    let [admin, adminCreated] = await User.findOrCreate({
       where: { email: 'admin@afrimart.com' },
       defaults: {
         email: 'admin@afrimart.com',
-        password: adminPassword,
+        password: 'admin123',
         firstName: 'Admin',
         lastName: 'User',
         role: 'admin',
@@ -21,15 +19,18 @@ const seedData = async () => {
         state: 'Lagos'
       }
     });
+    if (!adminCreated) {
+      admin.password = 'admin123';
+      await admin.save();
+    }
     console.log('✅ Admin user created');
 
-    // Create test customer
-    const customerPassword = await bcrypt.hash('customer123', 10);
-    const customer = await User.findOrCreate({
+    // Create test customer (User model hashes password in beforeCreate)
+    let [customer, customerCreated] = await User.findOrCreate({
       where: { email: 'customer@test.com' },
       defaults: {
         email: 'customer@test.com',
-        password: customerPassword,
+        password: 'customer123',
         firstName: 'Test',
         lastName: 'Customer',
         role: 'customer',
@@ -39,6 +40,10 @@ const seedData = async () => {
         state: 'FCT'
       }
     });
+    if (!customerCreated) {
+      customer.password = 'customer123';
+      await customer.save();
+    }
     console.log('✅ Test customer created');
 
     // Sample products

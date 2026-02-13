@@ -1,0 +1,11 @@
+# Static inventory fallback when AWS plugin unavailable
+# Replace EC2_PUBLIC_IP with your EC2 instance public IP from Terraform
+all:
+  children:
+    afrimart_app:
+      hosts:
+        afrimart_app_1:
+          ansible_host: 51.20.104.21
+          ansible_user: ec2-user
+          ansible_ssh_private_key_file: ~/.ssh/afrimarts-key.pem
+          ansible_python_interpreter: /usr/bin/python3.8

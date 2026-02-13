@@ -1,0 +1,70 @@
+---
+# Install Postgres and Redis on EC2 for local deploy (when not using RDS/ElastiCache)
+- name: Enable PostgreSQL 14 repo
+  ansible.builtin.command: amazon-linux-extras enable postgresql14
+  changed_when: false
+  when: ansible_os_family == "RedHat"
+
+- name: Install PostgreSQL server
+  ansible.builtin.yum:
+    name: postgresql-server
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Initialize Postgres database
+  ansible.builtin.shell: postgresql-setup --initdb
+  args:
+    executable: /bin/bash
+    creates: /var/lib/pgsql/data/postgresql.conf
+  when: ansible_os_family == "RedHat"
+
+- name: Start and enable PostgreSQL
+  ansible.builtin.shell: |
+    systemctl start postgresql-14 2>/dev/null || systemctl start postgresql
+    systemctl enable postgresql-14 2>/dev/null || systemctl enable postgresql
+  args:
+    executable: /bin/bash
+  when: ansible_os_family == "RedHat"
+
+- name: Create afrimart database and user
+  ansible.builtin.shell: |
+    sudo -u postgres psql -c "CREATE USER {{ db_user }} WITH PASSWORD '{{ db_password }}';" 2>/dev/null || true
+    sudo -u postgres psql -c "CREATE DATABASE {{ db_name }} OWNER {{ db_user }};" 2>/dev/null || true
+    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE {{ db_name }} TO {{ db_user }};"
+    sudo -u postgres psql -c "ALTER USER {{ db_user }} CREATEDB;" 2>/dev/null || true
+  args:
+    executable: /bin/bash
+  when: ansible_os_family == "RedHat"
+
+- name: Configure PostgreSQL to allow password auth for localhost (replace ident with md5)
+  ansible.builtin.replace:
+    path: "{{ pg_hba_path | default('/var/lib/pgsql/data/pg_hba.conf') }}"
+    regexp: '^host\s+all\s+all\s+127\.0\.0\.1/32\s+ident'
+    replace: 'host    all             all             127.0.0.1/32            md5'
+  when: ansible_os_family == "RedHat"
+
+- name: Ensure IPv6 local also uses md5 for consistency
+  ansible.builtin.replace:
+    path: "{{ pg_hba_path | default('/var/lib/pgsql/data/pg_hba.conf') }}"
+    regexp: '^host\s+all\s+all\s+::1/128\s+ident'
+    replace: 'host    all             all             ::1/128                 md5'
+  when: ansible_os_family == "RedHat"
+
+- name: Reload PostgreSQL config (pg_hba changes apply to new connections)
+  ansible.builtin.shell: sudo -u postgres psql -c "SELECT pg_reload_conf();"
+  args:
+    executable: /bin/bash
+  when: ansible_os_family == "RedHat"
+
+- name: Install Redis
+  ansible.builtin.yum:
+    name: redis
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Start and enable Redis
+  ansible.builtin.service:
+    name: redis
+    state: started
+    enabled: yes
+  when: ansible_os_family == "RedHat"

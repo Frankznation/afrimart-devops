@@ -1,0 +1,33 @@
+---
+# Shared variables for all AfriMart hosts
+# Python 3.8 required for Ansible 2.20+ (run playbooks/bootstrap-python.yml first)
+ansible_python_interpreter: /usr/bin/python3.8
+
+project_name: afrimart
+app_user: afrimart
+app_group: afrimart
+app_home: /opt/afrimart
+backend_dir: "{{ app_home }}/backend"
+frontend_dir: "{{ app_home }}/frontend"
+nginx_root: /var/www/afrimart
+
+# RDS and Redis - set via terraform output or override in group_vars/dev.yml
+db_host: "{{ rds_endpoint | default('localhost') }}"
+db_port: 5432
+db_name: afrimart
+db_user: afrimatadmin
+db_password: "{{ db_password_secret | default('CHANGE_ME') }}"
+
+redis_host: "{{ redis_endpoint | default('localhost') }}"
+redis_port: 6379
+redis_url: "redis://{{ redis_host }}:{{ redis_port }}"
+
+# AWS - EC2 instance has IAM role; bucket from Terraform
+aws_region: eu-north-1
+s3_bucket: "{{ bucket_name | default('afrimart-uploads') }}"
+
+# Application
+backend_port: 5000
+frontend_port: 80
+node_env: production
+ansible_python_interpreter: /usr/local/bin/python3.9

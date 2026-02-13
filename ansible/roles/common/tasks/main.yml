@@ -1,0 +1,47 @@
+---
+- name: Update package cache
+  ansible.builtin.yum:
+    update_cache: yes
+  when: ansible_os_family == "RedHat"
+
+- name: Install base packages
+  ansible.builtin.yum:
+    name:
+      - git
+      - curl
+      - wget
+      - unzip
+      - tar
+      - ca-certificates
+      - htop
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Create application group
+  ansible.builtin.group:
+    name: "{{ app_group }}"
+    state: present
+
+- name: Create application user
+  ansible.builtin.user:
+    name: "{{ app_user }}"
+    group: "{{ app_group }}"
+    home: "{{ app_home }}"
+    shell: /bin/bash
+    create_home: yes
+    system: no
+
+- name: Create application directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: "0755"
+  loop:
+    - "{{ app_home }}"
+    - "{{ backend_dir }}"
+    - "{{ frontend_dir }}"
+    - "{{ nginx_root }}"
+    - "{{ app_home }}/logs"
+    - "{{ app_home }}/uploads"
