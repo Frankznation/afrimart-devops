@@ -6,7 +6,7 @@ This guide explains how to run the AfriMart CI/CD pipeline successfully in Jenki
 
 ## Overview
 
-The pipeline runs **Checkout → Install Node.js → Install Dependencies → Run Tests (and Lint)** and optionally Security Scan, Docker builds, ECR push, and deployment. It does **not** require the NodeJS plugin or Docker plugin; Node.js is installed inline per build.
+The pipeline runs **Checkout → Install Node.js → Install Dependencies → Run Tests (and Lint) → Security Scan → Build Frontend → Deploy to Staging → Manual Approval → Deploy to Production → Post-Deployment Tests**. It optionally sends **Slack notifications** on success/failure. It does **not** require the NodeJS plugin or Docker plugin; Node.js is installed inline per build.
 
 ---
 
@@ -59,35 +59,59 @@ docker run -d \
 
 ---
 
-## 3. Run the Pipeline
+## 3. Configure Credentials
+
+### AWS Credentials (for ECR Push)
+
+1. **Manage Jenkins** → **Credentials** → **Add Credentials**
+2. **Kind:** Username with password
+3. **Username:** Your AWS Access Key ID
+4. **Password:** Your AWS Secret Access Key
+5. **ID:** `aws-credentials`
+6. **Save**
+
+> **Note:** Push to ECR requires Docker and AWS CLI on the Jenkins agent. If not available, the stage will fail gracefully.
+
+### Slack Notifications
+
+1. **Manage Jenkins** → **Script Console**
+2. Paste and run the script from `scripts/add-slack-webhook-credential.groovy` (replace `YOUR_WEBHOOK_URL` with your Slack webhook).
+3. Or add manually: **Credentials** → **Add** → **Secret text** → ID: `slack-webhook`, Secret: your webhook URL.
+
+**Get a Slack webhook:** [api.slack.com/apps](https://api.slack.com/apps) → Create App → Incoming Webhooks → Add to Workspace → Copy webhook URL.
+
+---
+
+## 4. Run the Pipeline
 
 1. Open **afrimart-pipeline**
 2. Click **Build Now**
-3. Check **Console Output** for progress
+3. Monitor progress in **Console Output**
+4. When the pipeline reaches **Manual Approval**, click **Deploy** in the build page to continue (or **Abort** to stop)
 
 ---
 
-## 4. Pipeline Stages
+## 5. Pipeline Stages
 
-| Stage              | Description                                                                 |
-|--------------------|-----------------------------------------------------------------------------|
-| **Checkout**       | Clones the repo from GitHub                                                 |
-| **Install Node.js**| Downloads Node 18 from nodejs.org and extracts into the workspace          |
-| **Install Dependencies** | Runs `npm ci` in `backend` and `frontend`                          |
-| **Run Tests**      | Jest (backend) + Vitest (frontend), then ESLint for both                    |
-| **Security Scan**  | npm audit (OWASP dependency scan) + Trivy (image scan when Docker available)|
-| **Build Docker Images** | Builds backend and frontend images (skipped if Docker unavailable)   |
-| **Push to ECR**    | Pushes images to ECR when `ECR_REGISTRY` and `aws-credentials` configured   |
-| **Build Frontend** | `npm run build` for frontend (main/master only)                             |
-| **Deploy to Staging** | Ansible deploy to staging (main/master only)                            |
-| **Manual Approval**| Waits for approval before production deploy                                 |
-| **Deploy to Production** | Ansible deploy to production (main/master only)                         |
-| **Post-Deployment Tests** | Health check via `curl`                                               |
-| **Notifications**  | Slack + Email on success/failure (when plugins and env vars configured)     |
+| Stage                  | Description                                                                 |
+|------------------------|-----------------------------------------------------------------------------|
+| **Checkout**           | Clones the repo from GitHub                                                 |
+| **Install Node.js**    | Downloads Node 18 from nodejs.org and extracts into the workspace          |
+| **Install Dependencies** | Runs `npm ci` in `backend` and `frontend`                              |
+| **Run Tests**          | Jest (backend) + Vitest (frontend), then ESLint for both                    |
+| **Security Scan**      | npm audit (OWASP dependency scan) + Trivy (image scan when Docker available)|
+| **Build Docker Images**| Builds backend and frontend images (skipped if Docker unavailable)          |
+| **Push to ECR**        | Pushes images to ECR (requires Docker + AWS CLI + `aws-credentials`)        |
+| **Build Frontend**     | `npm run build` for Ansible deploy                                          |
+| **Deploy to Staging**  | Ansible deploy to staging                                                   |
+| **Manual Approval**    | Waits for you to click **Deploy** before production                         |
+| **Deploy to Production** | Ansible deploy to production                                             |
+| **Post-Deployment Tests** | Health check via `curl`                                                 |
+| **Notifications**      | Slack (via curl to webhook when `slack-webhook` credential exists)          |
 
 ---
 
-## 5. Architecture Decisions
+## 6. Architecture Decisions
 
 ### No NodeJS Plugin
 
@@ -101,43 +125,32 @@ The pipeline installs Node.js inline instead of using the Jenkins NodeJS plugin:
 
 - Pipeline uses `agent any` (no Docker agent type)
 - Security Scan and Build Docker Images are skipped when the `docker` command is missing
-- Core stages (install, test, lint) still run
+- Push to ECR requires Docker and AWS CLI on the agent
 
-### ESLint Configuration
+### Slack via Webhook (No Plugin)
 
-- **Backend:** `backend/.eslintrc.cjs` – Node/ES2022, Jest env for tests
-- **Frontend:** `frontend/.eslintrc.cjs` – React/Browser
+- Uses `withCredentials` to inject the `slack-webhook` secret
+- Sends a curl POST to the webhook on success/failure
+- No Slack Notification plugin required
 
----
+### ECR Registry
 
-## 6. Optional Configuration
-
-### Push to ECR
-
-1. **Manage Jenkins** → **Credentials** → Add **AWS Credentials** with ID `aws-credentials`
-2. In the pipeline job, add **Environment variable** `ECR_REGISTRY` = `123456789.dkr.ecr.eu-north-1.amazonaws.com` (your ECR registry URL)
-3. Ensure ECR repositories exist: `afrimart-backend`, `afrimart-frontend`
-
-### Slack Notifications
-
-1. Install **Slack Notification** plugin
-2. Configure Slack in **Manage Jenkins** → **Configure System** (workspace, credentials)
-3. Add job env `SLACK_CHANNEL` (optional, defaults to `#builds`)
-
-### Email Notifications
-
-1. Install **Email Extension** plugin
-2. Configure SMTP in **Manage Jenkins** → **Configure System**
-3. Add job env `NOTIFY_EMAIL` = recipient address
-
-### Production Deployment
-
-1. Edit `ansible/inventory/production.yml` with production host(s)
-2. Ensure SSH key is available to Jenkins (e.g. `~/.ssh/afrimarts-key.pem` on agent)
+- `ECR_REGISTRY` is set in the Jenkinsfile environment (edit for your AWS account)
+- Credential ID `aws-credentials` must be Username/Password (Access Key = username, Secret Key = password)
 
 ---
 
-## 7. Troubleshooting
+## 7. Manual Approval
+
+When the pipeline reaches the **Manual Approval** stage:
+
+1. Open the running build (click the build number)
+2. You will see **"Deploy to Production?"** with **Deploy** and **Abort** buttons
+3. Click **Deploy** to continue to production, or **Abort** to stop
+
+---
+
+## 8. Troubleshooting
 
 ### Pipeline fails with "node: command not found"
 
@@ -146,11 +159,11 @@ The pipeline installs Node.js inline instead of using the Jenkins NodeJS plugin:
 
 ### "tar: xz: Cannot exec"
 
-- The agent lacked `xz`. The pipeline was updated to use `.tar.gz` instead.
+- The agent lacked `xz`. The pipeline uses `.tar.gz` instead.
 
 ### "Tool type 'nodejs' does not have an install of 'NodeJS 18'"
 
-- You do not need the NodeJS plugin with the current Jenkinsfile. The pipeline installs Node inline.
+- You do not need the NodeJS plugin. The pipeline installs Node inline.
 
 ### "Invalid agent type 'docker' specified"
 
@@ -164,11 +177,25 @@ The pipeline installs Node.js inline instead of using the Jenkins NodeJS plugin:
 
 - The Node install script selects `linux-arm64` or `darwin-arm64` automatically.
 
+### Push to ECR: "aws: not found" or "docker: not found"
+
+- The Jenkins agent does not have AWS CLI or Docker installed.
+- To enable: run Jenkins with Docker socket mounted, and install AWS CLI in the agent image/container.
+
+### Slack notifications not received
+
+- Ensure the `slack-webhook` credential exists (Secret text) with your webhook URL.
+- Run the script in `scripts/add-slack-webhook-credential.groovy` (with your URL) in Script Console.
+
+### AmazonWebServicesCredentialsBinding not found
+
+- Use **Username/Password** credential with ID `aws-credentials` (username = Access Key, password = Secret Key).
+
 ---
 
-## 8. Optional: Enable Docker Stages
+## 9. Optional: Enable Docker and ECR
 
-To run Security Scan and Build Docker Images:
+To run Build Docker Images and Push to ECR:
 
 1. Ensure Docker is installed on the Jenkins agent.
 2. If Jenkins runs in Docker, mount the Docker socket:
@@ -182,11 +209,12 @@ To run Security Scan and Build Docker Images:
      jenkins/jenkins:lts
    ```
 
-3. Install the **Docker Pipeline** plugin and configure Docker in Jenkins (optional, if you later switch to a Docker agent).
+3. Install AWS CLI inside the Jenkins container (or use an agent with it pre-installed).
+4. Ensure ECR repositories exist: `afrimart-backend`, `afrimart-frontend`.
 
 ---
 
-## 9. Repo Structure
+## 10. Repo Structure
 
 ```
 afrimart-devops/
@@ -203,12 +231,13 @@ afrimart-devops/
 │   ├── JENKINS_PIPELINE_GUIDE.md   # This file
 │   └── JENKINS_SETUP.md
 └── scripts/
+    ├── add-slack-webhook-credential.groovy   # Template for Slack credential
     └── install-jenkins-nodejs-plugin.sh
 ```
 
 ---
 
-## 10. Success Checklist
+## 11. Success Checklist
 
 - [ ] Jenkins is running and reachable
 - [ ] Pipeline job created with correct Git URL and branch
@@ -216,4 +245,7 @@ afrimart-devops/
 - [ ] **Install Node.js** downloads and extracts Node 18
 - [ ] **Install Dependencies** runs `npm ci` for backend and frontend
 - [ ] **Run Tests** passes Jest, Vitest, and ESLint
+- [ ] **Build Frontend** succeeds
+- [ ] **Manual Approval** – click Deploy when prompted
 - [ ] Pipeline status shows **Success** (green)
+- [ ] Slack notifications received (if `slack-webhook` configured)

@@ -18,14 +18,40 @@ Quick reference. For full details, see **[JENKINS_PIPELINE_GUIDE.md](./JENKINS_P
    - Branch: `*/main`
    - Script Path: `Jenkinsfile`
 
-3. **Build Now**
+3. **Add credentials** (see below)
+
+4. **Build Now**
+
+---
+
+## Credentials to Add
+
+### AWS (for ECR Push)
+
+- **Manage Jenkins** → **Credentials** → **Add**
+- Kind: **Username with password**
+- Username: AWS Access Key ID
+- Password: AWS Secret Access Key
+- ID: `aws-credentials`
+
+### Slack (for notifications)
+
+- **Manage Jenkins** → **Script Console**
+- Paste and run script from `scripts/add-slack-webhook-credential.groovy` (replace `YOUR_WEBHOOK_URL` with your Slack webhook)
+- Or add manually: Credentials → Secret text → ID: `slack-webhook`
+
+---
+
+## Manual Approval
+
+When the pipeline pauses at **Manual Approval**, open the build and click **Deploy** to continue.
 
 ---
 
 ## No Plugins Required
 
 The pipeline does **not** need:
-- NodeJS plugin
-- Docker Pipeline plugin
 
-Node.js is installed inline. Docker stages are skipped if Docker is unavailable.
+- NodeJS plugin (Node.js installed inline)
+- Docker Pipeline plugin (Docker stages skip if unavailable)
+- Slack Notification plugin (uses curl + webhook credential)

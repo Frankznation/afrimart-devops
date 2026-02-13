@@ -110,22 +110,21 @@ sudo cat /var/lib/jenkins/secrets/initialAdminPassword
 | Plugin | Purpose |
 |--------|---------|
 | Pipeline | Declarative pipeline (Jenkinsfile) |
-| Docker Pipeline | Build/push Docker images |
-| AWS Credentials | ECR, deploy |
-| GitHub | Webhook, checkout |
-| Blue Ocean | Optional – modern UI |
-| Email Extension | Notifications |
-| SonarQube / OWASP | Optional – security |
-| Pipeline: Stage View | Visualize stages |
+| Git | Checkout from GitHub |
+| Credentials | Store secrets |
+| **Optional:** Docker Pipeline, AWS Credentials Binding | Only if using Docker agent or AWS binding |
+
+> **Note:** The implemented pipeline uses `agent any`, inline Node.js install, and curl for Slack. Docker Pipeline and AWS Credentials Binding are **not** required.
 
 ### Credentials to Configure
 
 | ID | Type | Purpose |
 |----|------|---------|
-| `aws-credentials` | AWS | ECR push, deploy |
-| `github-ssh` or `github-token` | SSH / Secret | Checkout private repo |
-| `ec2-ssh-key` | SSH | Deploy via Ansible/SSH |
-| `slack-webhook` | Secret text | Notifications (optional) |
+| `aws-credentials` | Username/Password | ECR push (username=Access Key, password=Secret Key) |
+| `slack-webhook` | Secret text | Slack notifications (webhook URL) |
+| `ec2-ssh-key` | SSH | Deploy via Ansible (if using SSH from Jenkins) |
+
+**Adding Slack webhook:** Run the script in `scripts/add-slack-webhook-credential.groovy` in Jenkins Script Console (replace `YOUR_WEBHOOK_URL` with your Slack webhook).
 
 ### GitHub Webhook
 
@@ -339,11 +338,13 @@ curl -f http://<APP_URL>/api/health || exit 1
 | Issue | Solution |
 |-------|----------|
 | Webhook not triggering | Check Jenkins URL, firewall (8080), GitHub webhook payload |
-| ECR push fails | Verify AWS credentials in Jenkins, region, repository exists |
+| ECR push fails | Verify `aws-credentials` (Username/Password), Docker + AWS CLI on agent |
 | Tests fail in pipeline | Run locally first; ensure `npm test` works in CI env |
 | Ansible deploy fails | Ensure Jenkins has SSH key, inventory has correct hosts |
-| Manual approval blocks | Use "Proceed" in Jenkins UI when prompted |
-| Docker not found | Install Docker on Jenkins agent; add user to docker group |
+| Manual approval blocks | Click **Deploy** on the build page when prompted |
+| Docker not found | Install Docker on Jenkins agent; mount `/var/run/docker.sock` if Jenkins in Docker |
+| Slack not working | Add `slack-webhook` credential (Secret text); run script in Script Console |
+| AmazonWebServicesCredentialsBinding not found | Use Username/Password credential instead; see JENKINS_PIPELINE_GUIDE.md |
 
 ---
 
