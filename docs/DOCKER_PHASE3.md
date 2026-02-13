@@ -32,6 +32,8 @@ Phase 3 covers:
 | Optimized Dockerfiles | `backend/Dockerfile`, `frontend/Dockerfile` |
 | docker-compose.yml | `docker/docker-compose.yml` |
 | ECR Terraform module | `terraform/modules/ecr/` |
+| ECR documentation | [Container Registry (ECR)](#container-registry-ecr) section below |
+| Image size comparison report | [IMAGE_SIZE_REPORT.md](IMAGE_SIZE_REPORT.md) |
 | Documentation | This file |
 
 ---
@@ -221,7 +223,9 @@ docker build -t afrimart-frontend:test ./frontend
 docker images afrimart-backend afrimart-frontend --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}"
 ```
 
-**Expected:** Backend ~150–200 MB, Frontend ~25–40 MB
+**Expected:** Backend ~150–200 MB, Frontend ~25–40 MB  
+
+Full report with optimization techniques and comparison: [IMAGE_SIZE_REPORT.md](IMAGE_SIZE_REPORT.md)
 
 ### Local Test (Full Stack)
 
