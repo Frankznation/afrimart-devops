@@ -1,7 +1,9 @@
 pipeline {
-    agent any
-    tools {
-        nodejs 'NodeJS 18'  // Install: Manage Jenkins > Plugins > NodeJS, then Global Tool Configuration
+    agent {
+        docker {
+            image 'node:18'
+            args '-u root'
+        }
     }
     environment {
         AWS_REGION = 'eu-north-1'
