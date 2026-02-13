@@ -5,6 +5,8 @@ pipeline {
         DOCKER_BUILDKIT = '1'
         NODE_HOME = "${WORKSPACE}/node"
         PATH = "${WORKSPACE}/node/bin:${env.PATH}"
+        // Set your ECR registry URL (e.g. 123456789012.dkr.ecr.eu-north-1.amazonaws.com) to enable Push to ECR
+        ECR_REGISTRY = ''
     }
     options {
         buildDiscarder(logRotator(numToKeepStr: '10'))
