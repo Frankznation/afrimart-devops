@@ -75,7 +75,7 @@ pipeline {
             when { anyOf { branch 'main'; branch 'master' } }
             steps {
                 script {
-                    def registry = env.ECR_REGISTRY?.trim()
+                    def registry = (params.ECR_REGISTRY ?: env.ECR_REGISTRY ?: '').trim()
                     if (!registry) {
                         echo 'ECR_REGISTRY not set - skipping. Add job parameter or env: ECR_REGISTRY=123456789.dkr.ecr.eu-north-1.amazonaws.com'
                         return
