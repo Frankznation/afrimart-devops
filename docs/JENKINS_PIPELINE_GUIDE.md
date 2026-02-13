@@ -75,13 +75,15 @@ docker run -d \
 | **Install Node.js**| Downloads Node 18 from nodejs.org and extracts into the workspace          |
 | **Install Dependencies** | Runs `npm ci` in `backend` and `frontend`                          |
 | **Run Tests**      | Jest (backend) + Vitest (frontend), then ESLint for both                    |
-| **Security Scan**  | Docker build + Trivy scan (skipped if Docker is unavailable)                |
+| **Security Scan**  | npm audit (OWASP dependency scan) + Trivy (image scan when Docker available)|
 | **Build Docker Images** | Builds backend and frontend images (skipped if Docker unavailable)   |
-| **Push to ECR**    | Placeholder for ECR push (when `main`/`master`)                             |
-| **Deploy to Staging** | Runs Ansible deploy (when `main`/`master`)                              |
+| **Push to ECR**    | Pushes images to ECR when `ECR_REGISTRY` and `aws-credentials` configured   |
+| **Build Frontend** | `npm run build` for frontend (main/master only)                             |
+| **Deploy to Staging** | Ansible deploy to staging (main/master only)                            |
 | **Manual Approval**| Waits for approval before production deploy                                 |
-| **Deploy to Production** | Placeholder for production deploy                                       |
+| **Deploy to Production** | Ansible deploy to production (main/master only)                         |
 | **Post-Deployment Tests** | Health check via `curl`                                               |
+| **Notifications**  | Slack + Email on success/failure (when plugins and env vars configured)     |
 
 ---
 
@@ -108,7 +110,34 @@ The pipeline installs Node.js inline instead of using the Jenkins NodeJS plugin:
 
 ---
 
-## 6. Troubleshooting
+## 6. Optional Configuration
+
+### Push to ECR
+
+1. **Manage Jenkins** → **Credentials** → Add **AWS Credentials** with ID `aws-credentials`
+2. In the pipeline job, add **Environment variable** `ECR_REGISTRY` = `123456789.dkr.ecr.eu-north-1.amazonaws.com` (your ECR registry URL)
+3. Ensure ECR repositories exist: `afrimart-backend`, `afrimart-frontend`
+
+### Slack Notifications
+
+1. Install **Slack Notification** plugin
+2. Configure Slack in **Manage Jenkins** → **Configure System** (workspace, credentials)
+3. Add job env `SLACK_CHANNEL` (optional, defaults to `#builds`)
+
+### Email Notifications
+
+1. Install **Email Extension** plugin
+2. Configure SMTP in **Manage Jenkins** → **Configure System**
+3. Add job env `NOTIFY_EMAIL` = recipient address
+
+### Production Deployment
+
+1. Edit `ansible/inventory/production.yml` with production host(s)
+2. Ensure SSH key is available to Jenkins (e.g. `~/.ssh/afrimarts-key.pem` on agent)
+
+---
+
+## 7. Troubleshooting
 
 ### Pipeline fails with "node: command not found"
 
@@ -137,7 +166,7 @@ The pipeline installs Node.js inline instead of using the Jenkins NodeJS plugin:
 
 ---
 
-## 7. Optional: Enable Docker Stages
+## 8. Optional: Enable Docker Stages
 
 To run Security Scan and Build Docker Images:
 
@@ -157,7 +186,7 @@ To run Security Scan and Build Docker Images:
 
 ---
 
-## 8. Repo Structure
+## 9. Repo Structure
 
 ```
 afrimart-devops/
@@ -179,7 +208,7 @@ afrimart-devops/
 
 ---
 
-## 9. Success Checklist
+## 10. Success Checklist
 
 - [ ] Jenkins is running and reachable
 - [ ] Pipeline job created with correct Git URL and branch

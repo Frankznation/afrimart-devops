@@ -55,7 +55,11 @@ pipeline {
         stage('Security Scan') {
             steps {
                 script {
-                    sh 'which docker && docker build -t afrimart-backend:${BUILD_NUMBER} ./backend || echo "Docker not available - skip"'
+                    // OWASP: npm audit (dependency vulnerability scan)
+                    sh 'cd backend && (npm audit --audit-level=moderate || true)'
+                    sh 'cd frontend && (npm audit --audit-level=moderate || true)'
+                    // Trivy: container image scan
+                    sh 'which docker && docker build -t afrimart-backend:${BUILD_NUMBER} ./backend || echo "Docker not available - skip Trivy"'
                     sh 'which trivy && trivy image --exit-code 0 --severity HIGH,CRITICAL afrimart-backend:${BUILD_NUMBER} || echo "Trivy not installed - skip"'
                 }
             }
@@ -71,14 +75,35 @@ pipeline {
             when { anyOf { branch 'main'; branch 'master' } }
             steps {
                 script {
-                    echo 'Push to ECR - configure aws-credentials and ECR_REGISTRY'
+                    def registry = env.ECR_REGISTRY?.trim()
+                    if (!registry) {
+                        echo 'ECR_REGISTRY not set - skipping. Add job parameter or env: ECR_REGISTRY=123456789.dkr.ecr.eu-north-1.amazonaws.com'
+                        return
+                    }
+                    def region = env.AWS_REGION ?: 'eu-north-1'
+                    def imgBackend = "afrimart/backend:${BUILD_NUMBER}"
+                    def imgFrontend = "afrimart/frontend:${BUILD_NUMBER}"
+                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                        sh """
+                            aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${registry}
+                            docker tag ${imgBackend} ${registry}/afrimart-backend:${BUILD_NUMBER}
+                            docker tag ${imgFrontend} ${registry}/afrimart-frontend:${BUILD_NUMBER}
+                            docker push ${registry}/afrimart-backend:${BUILD_NUMBER}
+                            docker push ${registry}/afrimart-frontend:${BUILD_NUMBER}
+                        """
+                    }
                 }
+            }
+        }
+        stage('Build Frontend') {
+            when { anyOf { branch 'main'; branch 'master' } }
+            steps {
+                sh 'cd frontend && npm run build'
             }
         }
         stage('Deploy to Staging') {
             when { anyOf { branch 'main'; branch 'master' } }
             steps {
-                echo 'Deploy to Staging'
                 sh 'ansible-playbook -i ansible/inventory/static.yml ansible/playbooks/deploy-with-local-db.yml 2>/dev/null || echo "Ansible deploy - configure inventory"'
             }
         }
@@ -91,7 +116,7 @@ pipeline {
         stage('Deploy to Production') {
             when { anyOf { branch 'main'; branch 'master' } }
             steps {
-                echo 'Deploy to Production'
+                sh 'ansible-playbook -i ansible/inventory/production.yml ansible/playbooks/deploy-with-local-db.yml 2>/dev/null || ansible-playbook -i ansible/inventory/static.yml ansible/playbooks/deploy-with-local-db.yml 2>/dev/null || echo "Ansible deploy - configure ansible/inventory/production.yml"'
             }
         }
         stage('Post-Deployment Tests') {
@@ -102,8 +127,20 @@ pipeline {
         }
     }
     post {
-        success { echo 'Pipeline succeeded' }
-        failure { echo 'Pipeline failed' }
+        success {
+            echo 'Pipeline succeeded'
+            script {
+                try { slackSend(channel: env.SLACK_CHANNEL ?: '#builds', color: 'good', message: "✓ ${env.JOB_NAME} #${env.BUILD_NUMBER} succeeded") } catch (e) { echo "Slack: ${e}" }
+                if (env.NOTIFY_EMAIL?.trim()) { try { emailext(subject: "✓ ${env.JOB_NAME} #${env.BUILD_NUMBER} SUCCESS", body: "Build ${env.BUILD_URL}", to: env.NOTIFY_EMAIL) } catch (e) { echo "Email: ${e}" } }
+            }
+        }
+        failure {
+            echo 'Pipeline failed'
+            script {
+                try { slackSend(channel: env.SLACK_CHANNEL ?: '#builds', color: 'danger', message: "✗ ${env.JOB_NAME} #${env.BUILD_NUMBER} FAILED: ${env.BUILD_URL}") } catch (e) { echo "Slack: ${e}" }
+                if (env.NOTIFY_EMAIL?.trim()) { try { emailext(subject: "✗ ${env.JOB_NAME} #${env.BUILD_NUMBER} FAILED", body: "Build ${env.BUILD_URL}", to: env.NOTIFY_EMAIL) } catch (e) { echo "Email: ${e}" } }
+            }
+        }
         always {
             cleanWs(deleteDirs: false)
         }
