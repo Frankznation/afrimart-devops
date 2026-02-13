@@ -74,7 +74,6 @@ pipeline {
             }
         }
         stage('Push to ECR') {
-            when { anyOf { branch 'main'; branch 'master' } }
             steps {
                 script {
                     def registry = (params.ECR_REGISTRY ?: env.ECR_REGISTRY ?: '').trim()
@@ -98,25 +97,21 @@ pipeline {
             }
         }
         stage('Build Frontend') {
-            when { anyOf { branch 'main'; branch 'master' } }
             steps {
                 sh 'cd frontend && npm run build'
             }
         }
         stage('Deploy to Staging') {
-            when { anyOf { branch 'main'; branch 'master' } }
             steps {
                 sh 'ansible-playbook -i ansible/inventory/static.yml ansible/playbooks/deploy-with-local-db.yml 2>/dev/null || echo "Ansible deploy - configure inventory"'
             }
         }
         stage('Manual Approval') {
-            when { anyOf { branch 'main'; branch 'master' } }
             steps {
                 input message: 'Deploy to Production?', ok: 'Deploy'
             }
         }
         stage('Deploy to Production') {
-            when { anyOf { branch 'main'; branch 'master' } }
             steps {
                 sh 'ansible-playbook -i ansible/inventory/production.yml ansible/playbooks/deploy-with-local-db.yml 2>/dev/null || ansible-playbook -i ansible/inventory/static.yml ansible/playbooks/deploy-with-local-db.yml 2>/dev/null || echo "Ansible deploy - configure ansible/inventory/production.yml"'
             }
