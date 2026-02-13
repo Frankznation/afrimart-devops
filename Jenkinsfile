@@ -84,14 +84,20 @@ pipeline {
                     def region = env.AWS_REGION ?: 'eu-north-1'
                     def imgBackend = "afrimart/backend:${BUILD_NUMBER}"
                     def imgFrontend = "afrimart/frontend:${BUILD_NUMBER}"
-                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-                        sh """
-                            aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${registry}
-                            docker tag ${imgBackend} ${registry}/afrimart-backend:${BUILD_NUMBER}
-                            docker tag ${imgFrontend} ${registry}/afrimart-frontend:${BUILD_NUMBER}
-                            docker push ${registry}/afrimart-backend:${BUILD_NUMBER}
-                            docker push ${registry}/afrimart-frontend:${BUILD_NUMBER}
-                        """
+                    try {
+                        withCredentials([usernamePassword(credentialsId: 'aws-credentials', usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                            sh """
+                                export AWS_ACCESS_KEY_ID=\${AWS_ACCESS_KEY_ID}
+                                export AWS_SECRET_ACCESS_KEY=\${AWS_SECRET_ACCESS_KEY}
+                                aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${registry}
+                                docker tag ${imgBackend} ${registry}/afrimart-backend:${BUILD_NUMBER}
+                                docker tag ${imgFrontend} ${registry}/afrimart-frontend:${BUILD_NUMBER}
+                                docker push ${registry}/afrimart-backend:${BUILD_NUMBER}
+                                docker push ${registry}/afrimart-frontend:${BUILD_NUMBER}
+                            """
+                        }
+                    } catch (e) {
+                        echo "ECR push failed: ${e.message}. Ensure 'aws-credentials' is configured as Username/Password (username=Access Key, password=Secret Key)"
                     }
                 }
             }
