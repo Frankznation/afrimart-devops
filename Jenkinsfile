@@ -1,8 +1,5 @@
 pipeline {
     agent any
-    tools {
-        nodejs 'NodeJS 18'  // Requires NodeJS Plugin + Global Tool Config
-    }
     environment {
         AWS_REGION = 'eu-north-1'
         DOCKER_BUILDKIT = '1'
@@ -18,45 +15,29 @@ pipeline {
             }
         }
         stage('Install Dependencies') {
-            parallel {
-                stage('Backend') {
-                    steps {
-                        dir('backend') {
-                            sh 'npm ci'
-                        }
-                    }
+            agent {
+                docker {
+                    image 'node:18-alpine'
+                    reuseNode true
                 }
-                stage('Frontend') {
-                    steps {
-                        dir('frontend') {
-                            sh 'npm ci'
-                        }
-                    }
-                }
+            }
+            steps {
+                sh 'cd backend && npm ci'
+                sh 'cd frontend && npm ci'
             }
         }
         stage('Run Tests') {
-            parallel {
-                stage('Unit Tests') {
-                    steps {
-                        dir('backend') {
-                            sh 'npx jest --coverage --passWithNoTests'
-                        }
-                        dir('frontend') {
-                            sh 'npm test -- --run'
-                        }
-                    }
+            agent {
+                docker {
+                    image 'node:18-alpine'
+                    reuseNode true
                 }
-                stage('Lint') {
-                    steps {
-                        dir('backend') {
-                            sh 'npm run lint'
-                        }
-                        dir('frontend') {
-                            sh 'npm run lint'
-                        }
-                    }
-                }
+            }
+            steps {
+                sh 'cd backend && npx jest --coverage --passWithNoTests'
+                sh 'cd frontend && npm test -- --run'
+                sh 'cd backend && npm run lint'
+                sh 'cd frontend && npm run lint'
             }
         }
         stage('Security Scan') {
@@ -77,14 +58,7 @@ pipeline {
             when { anyOf { branch 'main'; branch 'master' } }
             steps {
                 script {
-                    // Requires: Jenkins credentials 'aws-credentials', and env ECR_REGISTRY
-                    // Uncomment and set ECR_REGISTRY when ready
                     echo 'Push to ECR - configure aws-credentials and ECR_REGISTRY'
-                    // withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']]) {
-                    //     sh 'aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY'
-                    //     sh 'docker tag afrimart/backend:$BUILD_NUMBER $ECR_REGISTRY/afrimart/backend:$BUILD_NUMBER'
-                    //     sh 'docker push $ECR_REGISTRY/afrimart/backend:$BUILD_NUMBER'
-                    // }
                 }
             }
         }
