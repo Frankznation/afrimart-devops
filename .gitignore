@@ -21,3 +21,6 @@ crash.*.log
 backend/logs/
 ansible/logs/
 *.log
+
+# Local scripts with secrets (do not commit)
+scripts/*.local.groovy

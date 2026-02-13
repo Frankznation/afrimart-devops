@@ -131,11 +131,25 @@ pipeline {
     post {
         success {
             echo 'Pipeline succeeded'
-            slackSend(channel: env.SLACK_CHANNEL ?: '#general', color: 'good', message: "✓ ${env.JOB_NAME} #${env.BUILD_NUMBER} succeeded", tokenCredentialId: 'slack-webhook')
+            script {
+                try {
+                    def msg = "✓ afrimart-pipeline #${env.BUILD_NUMBER} succeeded"
+                    withCredentials([string(credentialsId: 'slack-webhook', variable: 'SLACK_WEBHOOK')]) {
+                        sh "curl -sS -X POST -H 'Content-type: application/json' --data '{\"text\":\"${msg}\"}' \"\${SLACK_WEBHOOK}\" || true"
+                    }
+                } catch (e) { echo "Slack: credential slack-webhook not configured" }
+            }
         }
         failure {
             echo 'Pipeline failed'
-            slackSend(channel: env.SLACK_CHANNEL ?: '#general', color: 'danger', message: "✗ ${env.JOB_NAME} #${env.BUILD_NUMBER} FAILED: ${env.BUILD_URL}", tokenCredentialId: 'slack-webhook')
+            script {
+                try {
+                    def msg = "✗ afrimart-pipeline #${env.BUILD_NUMBER} FAILED"
+                    withCredentials([string(credentialsId: 'slack-webhook', variable: 'SLACK_WEBHOOK')]) {
+                        sh "curl -sS -X POST -H 'Content-type: application/json' --data '{\"text\":\"${msg}\"}' \"\${SLACK_WEBHOOK}\" || true"
+                    }
+                } catch (e) { echo "Slack: credential slack-webhook not configured" }
+            }
         }
         always { cleanWs(deleteDirs: false) }
     }
