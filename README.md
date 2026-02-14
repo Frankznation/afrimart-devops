@@ -72,6 +72,8 @@ Site URL: `http://<public-ip>/` (after Ansible deploy)
 
 ## Documentation
 
+> **Full index:** [docs/README.md](docs/README.md)
+
 | Document | Description |
 |----------|-------------|
 | [docs/TERRAFORM_PHASE1.md](docs/TERRAFORM_PHASE1.md) | **Phase 1: Infrastructure** – Terraform modules, commands |
@@ -90,6 +92,11 @@ Site URL: `http://<public-ip>/` (after Ansible deploy)
 | [docs/ALERTING.md](docs/ALERTING.md) | **Alerting** – alert rules, notification channels, on-call |
 | [docs/CLOUDWATCH_LOGGING.md](docs/CLOUDWATCH_LOGGING.md) | **CloudWatch Logs** – Fluent Bit, Log Insights, dashboards |
 | [docs/RUNBOOK.md](docs/RUNBOOK.md) | **Runbook** – alert remediation steps |
+| [docs/SECURITY_PHASE7.md](docs/SECURITY_PHASE7.md) | **Phase 7: Security** – secrets, TLS, scanning, IAM |
+| [docs/SECURITY_ASSESSMENT_REPORT.md](docs/SECURITY_ASSESSMENT_REPORT.md) | **Security assessment** – findings and recommendations |
+| [docs/BACKUP_RESTORE.md](docs/BACKUP_RESTORE.md) | **Backup & restore** – RDS, S3, procedures |
+| [docs/DISASTER_RECOVERY.md](docs/DISASTER_RECOVERY.md) | **Disaster recovery** – RTO/RPO, DR plan |
+| [docs/COMPLIANCE_CHECKLIST.md](docs/COMPLIANCE_CHECKLIST.md) | **Compliance** – CIS, AWS best practices |
 
 ## Phase 5: Kubernetes / EKS (Quick Start)
 
@@ -128,6 +135,15 @@ kubectl port-forward svc/prometheus 9090:9090 -n monitoring
 ```
 
 See [docs/PROMETHEUS_MONITORING_GUIDELINE.md](docs/PROMETHEUS_MONITORING_GUIDELINE.md) for queries, dashboards, and troubleshooting.
+
+## Phase 7: Security (Quick Start)
+
+```bash
+# Run security scan (Trivy, tfsec, npm audit)
+./scripts/security-scan.sh
+```
+
+See [docs/SECURITY_PHASE7.md](docs/SECURITY_PHASE7.md) for secrets, TLS, IAM, and [docs/BACKUP_RESTORE.md](docs/BACKUP_RESTORE.md) for backup procedures.
 
 ## Phase 3: Docker (Quick Start)
 

@@ -21,6 +21,9 @@ resource "aws_db_instance" "this" {
   vpc_security_group_ids  = [var.db_sg_id]
   skip_final_snapshot     = var.skip_final_snapshot
   publicly_accessible     = false
+  storage_encrypted       = var.storage_encrypted
+  backup_retention_period = var.backup_retention_period
+  backup_window           = var.backup_window
 
   tags = {
     Name = "${var.project_name}-postgres"

@@ -60,3 +60,21 @@ variable "skip_final_snapshot" {
   type    = bool
   default = true
 }
+
+variable "storage_encrypted" {
+  type        = bool
+  default     = true
+  description = "Encrypt RDS storage at rest"
+}
+
+variable "backup_retention_period" {
+  type        = number
+  default     = 7
+  description = "Days to retain automated backups (0-35)"
+}
+
+variable "backup_window" {
+  type        = string
+  default     = "03:00-04:00"
+  description = "Daily backup window (UTC)"
+}
