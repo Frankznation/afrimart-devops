@@ -4,6 +4,50 @@ This document covers the AfriMart Kubernetes deployment on AWS EKS.
 
 ---
 
+## Phase 5 Task Checklist
+
+### 1. EKS Cluster Setup
+| Task | Status | Implementation |
+|------|--------|----------------|
+| Create EKS cluster (Terraform) | ✓ | `terraform/environments/eks/` |
+| Node groups (on-demand + spot) | ✓ | `on_demand` + `spot` in EKS module |
+| kubectl access | ✓ | `aws eks update-kubeconfig` |
+| AWS Load Balancer Controller | ✓ | Install via Helm (see below) |
+
+### 2. Kubernetes Manifests
+| Task | Status | File |
+|------|--------|------|
+| Deployments (backend, frontend) | ✓ | `k8s/*-deployment.yaml` |
+| Services (ClusterIP) | ✓ | `k8s/*-service.yaml` |
+| ConfigMaps | ✓ | `k8s/configmap.yaml` |
+| Secrets | ✓ | `k8s/secret.yaml.example` → `secret.yaml` |
+| Horizontal Pod Autoscaler | ✓ | `k8s/hpa.yaml` |
+| Ingress | ✓ | `k8s/ingress.yaml` |
+| PersistentVolumeClaims | ✓ | In `backend-deployment.yaml` (PVC defined; deployment uses emptyDir for uploads) |
+
+### 3. Helm Charts (Bonus)
+| Task | Status | Implementation |
+|------|--------|----------------|
+| Helm charts | ✓ | `helm/afrimart/` |
+| Values for environments | ✓ | `values-dev.yaml`, `values-prod.yaml` |
+| Helm deployment | ✓ | `helm install afrimart helm/afrimart -f values-dev.yaml` |
+
+### 4. Advanced Features
+| Task | Status | Implementation |
+|------|--------|----------------|
+| Network policies | ✓ | `k8s/network-policy.yaml` |
+| Resource limits/requests | ✓ | In Deployments |
+| Liveness/readiness probes | ✓ | In Deployments |
+| Pod Disruption Budgets | ✓ | `k8s/pdb.yaml` |
+
+### Deliverables
+- ✓ `k8s/` – all manifests
+- ✓ `helm/afrimart/` – Helm charts
+- ✓ Cluster architecture diagram (below)
+- ✓ Resource utilization analysis – [RESOURCE_UTILIZATION.md](RESOURCE_UTILIZATION.md)
+
+---
+
 ## Table of Contents
 
 1. [Overview](#overview)
@@ -30,6 +74,58 @@ Phase 5 provides:
 
 ## Architecture
 
+### Cluster Architecture Diagram (Mermaid)
+
+```mermaid
+flowchart TB
+    subgraph Internet["Internet"]
+        Users[Users]
+    end
+
+    subgraph ALB["AWS Application Load Balancer"]
+        Ingress[Ingress Controller]
+    end
+
+    subgraph EKS["EKS Cluster - afrimart namespace"]
+        subgraph Frontend["Frontend Deployment"]
+            FE1[Frontend Pod 1]
+            FE2[Frontend Pod 2]
+        end
+        subgraph Backend["Backend Deployment"]
+            BE1[Backend Pod 1]
+            BE2[Backend Pod 2]
+        end
+        FESVC[Frontend Service ClusterIP]
+        BESVC[Backend Service ClusterIP]
+        HPA[HPA 2-10 / 2-6]
+        PDB[Pod Disruption Budget]
+        NP[Network Policy]
+    end
+
+    subgraph NodeGroups["Node Groups"]
+        OD[On-Demand t3.micro]
+        SP[Spot t3.micro]
+    end
+
+    subgraph External["External Services"]
+        RDS[(RDS PostgreSQL)]
+        Redis[(ElastiCache Redis)]
+        S3[S3 Bucket]
+    end
+
+    Users --> Ingress
+    Ingress --> FESVC
+    Ingress --> BESVC
+    FESVC --> FE1 & FE2
+    BESVC --> BE1 & BE2
+    BE1 & BE2 --> RDS
+    BE1 & BE2 --> Redis
+    BE1 & BE2 --> S3
+    FE1 & FE2 & BE1 & BE2 --> OD & SP
+```
+
+### ASCII Diagram
+
 ```
                     ┌─────────────────────────────────────────────┐
                     │                  Internet                    │
@@ -55,7 +151,7 @@ Phase 5 provides:
          │  │                    └──────────────────────────────────┘   │  │
          │  └───────────────────────────────────────────────────────────┘  │
          │                                                                  │
-         │  Node Groups: on-demand (t3.medium) + spot (t3.medium/t3a)       │
+         │  Node Groups: on-demand (t3.micro) + spot (t3.micro)             │
          └──────────────────────────┬───────────────────────────────────────┘
                                     │
          ┌──────────────────────────┼──────────────────────────┐
@@ -106,23 +202,49 @@ The EKS module tags subnets for `kubernetes.io/cluster/*` and load balancer disc
 
 ## AWS Load Balancer Controller
 
-The Ingress uses the AWS Load Balancer Controller. Install it after the cluster is ready:
+The Ingress uses the AWS Load Balancer Controller. Install it after the cluster is ready.
 
-```bash
-# Install cert-manager (required by LB controller)
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml
+### IRSA (IAM Roles for Service Accounts)
 
-# Install AWS Load Balancer Controller (see AWS docs for IAM and Helm)
-# https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.6/deploy/installation/
-helm repo add eks https://aws.github.io/eks-charts
-helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
-  -n kube-system \
-  --set clusterName=afrimart-eks \
-  --set serviceAccount.create=false \
-  --set serviceAccount.name=aws-load-balancer-controller
-```
+The Load Balancer Controller needs IAM permissions to create ALBs and target groups. Use IRSA:
 
-**IRSA:** Ensure the controller service account has IAM permissions. The EKS module has `enable_irsa = true`; create an IAM policy and role for the controller per [AWS documentation](https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.6/deploy/installation/).
+1. **Create IAM policy** for the controller (per [AWS docs](https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.6/deploy/installation/)):
+
+   ```bash
+   curl -o iam-policy.json https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.6.2/docs/install/iam_policy.json
+   aws iam create-policy --policy-name AWSLoadBalancerControllerIAMPolicy --policy-document file://iam-policy.json
+   ```
+
+2. **Create IAM role and trust policy** for the controller service account (use `eksctl create iamserviceaccount` or Terraform with OIDC provider):
+
+   ```bash
+   eksctl create iamserviceaccount \
+     --cluster=afrimart-eks \
+     --namespace=kube-system \
+     --name=aws-load-balancer-controller \
+     --attach-policy-arn=arn:aws:iam::ACCOUNT_ID:policy/AWSLoadBalancerControllerIAMPolicy \
+     --override-existing-serviceaccounts \
+     --approve
+   ```
+
+3. **Install cert-manager** (required by the controller):
+
+   ```bash
+   kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml
+   ```
+
+4. **Install AWS Load Balancer Controller**:
+
+   ```bash
+   helm repo add eks https://aws.github.io/eks-charts
+   helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
+     -n kube-system \
+     --set clusterName=afrimart-eks \
+     --set serviceAccount.create=false \
+     --set serviceAccount.name=aws-load-balancer-controller
+   ```
+
+The EKS Terraform module enables IRSA (`enable_irsa = true`) and exposes the OIDC issuer URL. Use the AWS docs for full IRSA setup if not using eksctl.
 
 ---
 
@@ -187,28 +309,52 @@ helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
    helm upgrade afrimart helm/afrimart -n afrimart -f helm/afrimart/values-prod.yaml
    ```
 
+### Using ECR Instead of GHCR
+
+ECR repos (from Terraform) are `afrimart/backend` and `afrimart/frontend`. To use ECR:
+
+**Option 1 – `values-ecr.yaml`** (edit `imageRegistry` with your AWS account ID):
+
+```bash
+helm install afrimart helm/afrimart -n afrimart \
+  -f helm/afrimart/values-dev.yaml -f helm/afrimart/values-ecr.yaml
+```
+
+**Option 2 – set registry from Terraform output:**
+
+```bash
+ECR_REGISTRY=$(cd terraform/environments/eks && terraform output -raw ecr_backend_url | sed 's|/afrimart/backend||')
+helm install afrimart helm/afrimart -n afrimart \
+  -f helm/afrimart/values-dev.yaml -f helm/afrimart/values-ecr.yaml \
+  --set imageRegistry=$ECR_REGISTRY
+```
+
+ECR nodes need pull access (EKS node IAM role or `imagePullSecrets` for ECR auth).
+
 ---
 
 ## Resource Utilization
 
-| Component   | Requests        | Limits        | Replicas | Notes                    |
-|------------|-----------------|---------------|----------|--------------------------|
-| Backend    | 100m CPU, 256Mi | 500m, 512Mi   | 2–10     | HPA on CPU 70%           |
-| Frontend   | 50m CPU, 64Mi   | 200m, 128Mi   | 2–6      | HPA on CPU 70%           |
-| PVC        | 5Gi             | -             | -        | Backend uploads (gp3)    |
+| Component   | Requests        | Limits        | Replicas | Notes                                                                 |
+|------------|-----------------|---------------|----------|-----------------------------------------------------------------------|
+| Backend    | 100m CPU, 256Mi | 500m, 512Mi   | 2–10     | HPA on CPU 70%, memory 80%; scaling behavior configured               |
+| Frontend   | 50m CPU, 64Mi   | 200m, 128Mi   | 2–6      | HPA on CPU 70%                                                        |
+| Storage    | -               | -             | -        | Backend: uploads and logs use emptyDir (ephemeral). PVC defined for uploads if needed. |
 
-**Node sizing:** On-demand t3.medium (2 vCPU, 4 GiB) × 2, Spot × 1. Adjust in Terraform variables.
+**Replicas:** Deployments specify `replicas: 1`; when HPA is applied, it scales to min 2 (backend and frontend).
+
+**Node sizing:** On-demand t3.micro (2 vCPU, 1 GiB) × 2, Spot t3.micro × 1. Adjust in `terraform/environments/eks/variables.tf`.
 
 ---
 
 ## Evaluation Criteria Mapping
 
-| Criterion              | Weight | Implementation                                         |
-|------------------------|--------|--------------------------------------------------------|
+| Criterion              | Weight | Implementation                                                                 |
+|------------------------|--------|--------------------------------------------------------------------------------|
 | Manifest completeness  | 30%    | Deployments, Services, ConfigMaps, Secrets, HPA, Ingress, PDB, PVC, NetworkPolicy |
-| High availability      | 25%    | 2+ replicas, PDB minAvailable, multi-AZ nodes, rolling updates |
-| Resource optimization  | 25%    | Requests/limits, HPA, PVC sizing                       |
-| Documentation          | 20%    | This doc, architecture diagram, Helm values            |
+| High availability      | 25%    | HPA min 2 replicas, PDB minAvailable: 1, rolling updates maxUnavailable: 0, multi-node groups |
+| Resource optimization  | 25%    | Requests/limits on all pods, HPA (backend: CPU+memory; frontend: CPU), scaling behavior |
+| Documentation          | 20%    | This doc, architecture diagram, [RESOURCE_UTILIZATION.md](RESOURCE_UTILIZATION.md), Helm values |
 
 ---
 
@@ -221,6 +367,7 @@ helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
 | Backend crash / DB connect  | Verify DATABASE_URL, RDS security group allows EKS nodes                 |
 | Ingress not creating ALB    | Ensure AWS Load Balancer Controller is installed and has IAM permissions |
 | PVC pending                 | Ensure EBS CSI driver or default StorageClass (gp3) exists               |
+| Uploads not persisting      | Backend uses emptyDir; to persist uploads, mount the `backend-uploads` PVC in the deployment |
 
 ---
 

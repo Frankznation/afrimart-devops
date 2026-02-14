@@ -1,0 +1,19 @@
+# Use Amazon ECR instead of GHCR
+# ECR repos (from terraform/modules/ecr): afrimart/backend, afrimart/frontend
+#
+# Usage:
+#   helm install afrimart helm/afrimart -n afrimart \
+#     -f helm/afrimart/values-dev.yaml -f helm/afrimart/values-ecr.yaml
+#
+# Or set registry from terraform:
+#   ECR_REGISTRY=$(cd terraform/environments/eks && terraform output -raw ecr_backend_url | sed 's|/afrimart/backend||')
+#   helm install ... --set imageRegistry=$ECR_REGISTRY
+#
+# Replace 123456789012 with your AWS account ID and region as needed:
+imageRegistry: 123456789012.dkr.ecr.eu-north-1.amazonaws.com
+
+backend:
+  image: afrimart/backend
+
+frontend:
+  image: afrimart/frontend

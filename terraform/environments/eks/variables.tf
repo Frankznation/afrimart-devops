@@ -23,7 +23,7 @@ variable "ssh_allowed_cidr" {
 
 variable "on_demand_instance_types" {
   type    = list(string)
-  default = ["t3.medium"]
+  default = ["t3.micro"]  # Free Tier eligible
 }
 
 variable "on_demand_desired_size" {
@@ -43,7 +43,7 @@ variable "on_demand_max_size" {
 
 variable "spot_instance_types" {
   type    = list(string)
-  default = ["t3.medium", "t3a.medium"]
+  default = ["t3.micro"]  # Free Tier eligible; t3a not available in eu-north-1
 }
 
 variable "spot_desired_size" {

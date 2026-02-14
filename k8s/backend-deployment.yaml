@@ -7,7 +7,7 @@ metadata:
     app: backend
     app.kubernetes.io/name: afrimart-backend
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: backend
@@ -28,7 +28,7 @@ spec:
         fsGroup: 1001
       containers:
         - name: backend
-          image: ghcr.io/frankznation/afrimart-backend:latest
+          image: 024258572182.dkr.ecr.eu-north-1.amazonaws.com/afrimart/backend:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 5000
@@ -68,8 +68,7 @@ spec:
               mountPath: /app/logs
       volumes:
         - name: uploads
-          persistentVolumeClaim:
-            claimName: backend-uploads
+          emptyDir: {}
         - name: logs
           emptyDir: {}
 ---
