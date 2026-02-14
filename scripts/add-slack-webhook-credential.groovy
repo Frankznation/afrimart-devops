@@ -7,7 +7,7 @@ import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl
 import com.cloudbees.plugins.credentials.domains.Domain
 import com.cloudbees.plugins.credentials.CredentialsProvider
 
-def webhookUrl = 'YOUR_WEBHOOK_URL'  // e.g. https://hooks.slack.com/services/T.../B.../xxx
+def webhookUrl = 'YOUR_WEBHOOK_URL'  // Get from Slack App: Incoming Webhooks
 if (webhookUrl == 'YOUR_WEBHOOK_URL') {
   println 'ERROR: Replace YOUR_WEBHOOK_URL with your Slack webhook before running'
   return

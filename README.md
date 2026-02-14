@@ -8,7 +8,7 @@ End-to-end DevOps deployment for the AfriMart e-commerce platform (Terraform, An
 ├── backend/           # Node.js API (Express, Sequelize, Postgres)
 ├── frontend/          # React/Vite e-commerce UI
 ├── docker/            # Docker Compose for local development
-├── k8s/               # Kubernetes manifests (Phase 5)
+├── k8s/               # Kubernetes manifests (Phase 5) + monitoring (Phase 6)
 ├── helm/              # Helm charts for AfriMart
 ├── terraform/         # Phase 1: AWS infrastructure
 │   ├── backend/       # S3 + DynamoDB for state
@@ -85,6 +85,9 @@ Site URL: `http://<public-ip>/` (after Ansible deploy)
 | [docs/JENKINS_SETUP.md](docs/JENKINS_SETUP.md) | Quick Jenkins setup reference |
 | [docs/KUBERNETES_PHASE5.md](docs/KUBERNETES_PHASE5.md) | **Phase 5: Kubernetes** – EKS, manifests, Helm |
 | [docs/RESOURCE_UTILIZATION.md](docs/RESOURCE_UTILIZATION.md) | **Phase 5: Resource utilization** – sizing analysis |
+| [docs/MONITORING_PHASE6.md](docs/MONITORING_PHASE6.md) | **Phase 6: Monitoring** – Prometheus, Grafana, Alertmanager |
+| [docs/PROMETHEUS_MONITORING_GUIDELINE.md](docs/PROMETHEUS_MONITORING_GUIDELINE.md) | **Prometheus guide** – queries, backend fix, troubleshooting |
+| [docs/RUNBOOK.md](docs/RUNBOOK.md) | **Runbook** – alert remediation steps |
 
 ## Phase 5: Kubernetes / EKS (Quick Start)
 
@@ -107,6 +110,22 @@ cp k8s/secret.yaml.example k8s/secret.yaml
 ```
 
 See [docs/KUBERNETES_PHASE5.md](docs/KUBERNETES_PHASE5.md) for full setup including AWS Load Balancer Controller.
+
+## Phase 6: Monitoring (Prometheus, Grafana)
+
+```bash
+# Deploy monitoring stack
+./scripts/apply-monitoring.sh
+
+# Access Prometheus
+kubectl port-forward svc/prometheus 9090:9090 -n monitoring
+# Open http://localhost:9090
+
+# Fix backend metrics (if backend is crashlooping)
+./scripts/fix-backend-now.sh
+```
+
+See [docs/PROMETHEUS_MONITORING_GUIDELINE.md](docs/PROMETHEUS_MONITORING_GUIDELINE.md) for queries, dashboards, and troubleshooting.
 
 ## Phase 3: Docker (Quick Start)
 
