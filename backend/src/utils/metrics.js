@@ -25,10 +25,23 @@ const activeConnections = new client.Gauge({
   help: 'Number of active connections'
 });
 
+// Business metrics
+const ordersTotal = new client.Counter({
+  name: 'afrimart_orders_total',
+  help: 'Total number of orders created'
+});
+
+const revenueTotal = new client.Counter({
+  name: 'afrimart_revenue_total',
+  help: 'Total revenue from orders (currency units)'
+});
+
 // Register custom metrics
 register.registerMetric(httpRequestDuration);
 register.registerMetric(httpRequestTotal);
 register.registerMetric(activeConnections);
+register.registerMetric(ordersTotal);
+register.registerMetric(revenueTotal);
 
 // Middleware to track metrics
 const metricsMiddleware = (req, res, next) => {
@@ -54,7 +67,14 @@ const metricsMiddleware = (req, res, next) => {
   next();
 };
 
+// Track order for business metrics
+const trackOrder = (totalAmount) => {
+  ordersTotal.inc();
+  revenueTotal.inc(parseFloat(totalAmount) || 0);
+};
+
 module.exports = {
   register,
-  metricsMiddleware
+  metricsMiddleware,
+  trackOrder
 };

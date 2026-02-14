@@ -1,0 +1,14 @@
+# ConfigMap for Fluent Bit - use fluent-bit-cluster-info name for AWS manifests
+# Create with: see scripts/setup-cloudwatch-logging.sh
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluent-bit-cluster-info
+  namespace: amazon-cloudwatch
+data:
+  cluster.name: afrimart-eks
+  logs.region: eu-north-1
+  http.server: "On"
+  http.port: "2020"
+  read.head: "Off"
+  read.tail: "On"

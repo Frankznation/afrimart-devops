@@ -1,0 +1,55 @@
+# Redis Exporter - exposes redis_* metrics from ElastiCache
+# Create secret: kubectl create secret generic exporter-credentials -n monitoring --from-literal=REDIS_ADDR="afrimart-redis.xxx.cache.amazonaws.com:6379"
+# Or add REDIS_ADDR to exporter-credentials if you already created it for postgres
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-exporter
+  namespace: monitoring
+  labels:
+    app: redis-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis-exporter
+  template:
+    metadata:
+      labels:
+        app: redis-exporter
+    spec:
+      containers:
+        - name: redis-exporter
+          image: oliver006/redis_exporter:v1.55.0
+          env:
+            - name: REDIS_ADDR
+              valueFrom:
+                secretKeyRef:
+                  name: exporter-credentials
+                  key: REDIS_ADDR
+          ports:
+            - containerPort: 9121
+              name: metrics
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-exporter
+  namespace: monitoring
+  labels:
+    app: redis-exporter
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9121
+      targetPort: 9121
+      name: metrics
+  selector:
+    app: redis-exporter

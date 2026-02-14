@@ -139,6 +139,31 @@ Pre-provisioned dashboards:
 | **AfriMart Overview** | Backend status, request rate, latency p95, error % |
 | **AfriMart Application** | Request rate by route, latency p95, 5xx errors, active connections |
 | **Infrastructure** | CPU, memory, disk (requires node-exporter) |
+| **Database Performance** | Active connections, transactions, rollbacks, rows fetched (requires postgres-exporter) |
+| **Redis Cache Statistics** | Connected clients, memory, commands, keys (requires redis-exporter) |
+| **Business Metrics** | Total orders, total revenue, orders/revenue per hour (requires backend with metrics) |
+
+### Database & Redis exporters
+
+To enable Database Performance and Redis Cache dashboards:
+
+1. Create exporter credentials (or run `./scripts/fix-backend-now.sh` which creates them):
+   ```bash
+   ./scripts/setup-exporters-secret.sh
+   ```
+2. Deploy exporters:
+   ```bash
+   kubectl apply -f k8s/monitoring/postgres-exporter-deployment.yaml
+   kubectl apply -f k8s/monitoring/redis-exporter-deployment.yaml
+   ```
+3. Update Prometheus config (already includes postgres/redis scrape jobs) and restart:
+   ```bash
+   kubectl rollout restart deployment/prometheus -n monitoring
+   ```
+
+### Business metrics
+
+The backend exposes `afrimart_orders_total` and `afrimart_revenue_total`. Rebuild and push the backend image after pulling the latest code, then restart the backend deployment.
 
 ---
 
@@ -158,8 +183,10 @@ kubectl rollout restart deployment/alertmanager -n monitoring
 
 ### Alert channels
 
-- **Critical** → `#alerts-critical` (InstanceDown, AfriMartBackendDown, DatabaseConnectionFailed)
+- **Critical** → `#alerts-critical` (InstanceDown, AfriMartBackendDown, DatabaseConnectionFailed, RedisDown, PostgresDown)
 - **Warning** → `#alerts-warning` (HighCPU, HighMemory, HighErrorRate, HighLatency)
+
+See [ALERTING.md](ALERTING.md) for full alert definitions, email/PagerDuty setup, and on-call rotation.
 
 ---
 
@@ -213,7 +240,26 @@ kubectl rollout restart deployment/backend -n afrimart
 
 ---
 
+## Grafana Dashboard JSON Exports
+
+Dashboard JSON files are in `k8s/monitoring/dashboards/`:
+
+| File | Dashboard |
+|------|-----------|
+| afrimart-overview.json | AfriMart Overview |
+| afrimart-application.json | AfriMart Application Metrics |
+| infrastructure.json | Infrastructure (CPU, Memory, Disk) |
+| database-performance.json | Database Performance (PostgreSQL) |
+| redis-cache.json | Redis Cache Statistics |
+| business-metrics.json | Business Metrics (Orders, Revenue) |
+
+To export from Grafana UI: Dashboard → ⋮ → Share → Export → Save to file.
+
+---
+
 ## Related docs
 
 - [MONITORING_PHASE6.md](MONITORING_PHASE6.md) — Phase 6 overview
+- [ALERTING.md](ALERTING.md) — Alert rules, notification channels, on-call
+- [CLOUDWATCH_LOGGING.md](CLOUDWATCH_LOGGING.md) — CloudWatch Logs setup
 - [RUNBOOK.md](RUNBOOK.md) — Alert remediation runbook

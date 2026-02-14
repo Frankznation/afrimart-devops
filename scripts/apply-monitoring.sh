@@ -25,6 +25,10 @@ kubectl apply -f "${MONITORING_DIR}/grafana-dashboards-configmap.yaml"
 kubectl apply -f "${MONITORING_DIR}/grafana-dashboards.yaml"
 kubectl apply -f "${MONITORING_DIR}/grafana-deployment.yaml"
 
+# Exporters (require exporter-credentials secret - run fix-backend-now.sh or setup-exporters-secret.sh first)
+kubectl apply -f "${MONITORING_DIR}/postgres-exporter-deployment.yaml" 2>/dev/null || true
+kubectl apply -f "${MONITORING_DIR}/redis-exporter-deployment.yaml" 2>/dev/null || true
+
 echo "Monitoring stack applied. Access:"
 echo "  Grafana:  kubectl port-forward svc/grafana 3000:3000 -n monitoring  (admin/admin)"
 echo "  Prometheus: kubectl port-forward svc/prometheus 9090:9090 -n monitoring"

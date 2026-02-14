@@ -10,7 +10,7 @@
   "liveNow": false,
   "panels": [
     {
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": { "color": { "mode": "palette-classic" }, "unit": "reqps" },
         "overrides": []
@@ -28,7 +28,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": { "color": { "mode": "palette-classic" }, "unit": "s" },
         "overrides": []
@@ -45,7 +45,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": { "color": { "mode": "palette-classic" } },
         "overrides": [
@@ -64,7 +64,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": { "color": { "mode": "palette-classic" } },
         "overrides": []

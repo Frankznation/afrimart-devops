@@ -4,7 +4,7 @@
   "id": null,
   "panels": [
     {
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": { "color": { "mode": "thresholds" } },
         "overrides": []
@@ -20,7 +20,7 @@
       "type": "stat"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": { "color": { "mode": "thresholds" }, "unit": "reqps" },
         "overrides": []
@@ -36,7 +36,7 @@
       "type": "stat"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": { "color": { "mode": "thresholds" }, "unit": "s" },
         "overrides": []
@@ -52,7 +52,7 @@
       "type": "stat"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": { "color": { "mode": "thresholds" } },
         "overrides": []

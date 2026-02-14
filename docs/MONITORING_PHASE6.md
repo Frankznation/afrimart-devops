@@ -78,20 +78,38 @@ Open http://localhost:9090
 |-----------|-------------|
 | **AfriMart Overview** | Backend status, request rate, latency, error % |
 | **AfriMart Application** | Request rate, latency p95, 5xx errors, active connections |
-| **Infrastructure** | CPU, memory, disk, targets up |
+| **Infrastructure** | CPU, memory, disk, targets up (requires node-exporter) |
+| **Database Performance** | PostgreSQL metrics (requires postgres-exporter) |
+| **Redis Cache Statistics** | Redis metrics (requires redis-exporter) |
+| **Business Metrics** | Orders, revenue (requires backend metrics) |
+
+### Grafana Dashboard JSON Exports
+
+Pre-built dashboard JSON files are in `k8s/monitoring/dashboards/`:
+
+- `afrimart-overview.json`
+- `afrimart-application.json`
+- `infrastructure.json`
+- `database-performance.json`
+- `redis-cache.json`
+- `business-metrics.json`
 
 ---
 
 ## Alerting Rules
 
+See [ALERTING.md](ALERTING.md) for full definitions and setup.
+
 ### Critical
 - **InstanceDown** – Target unreachable for 5m
 - **AfriMartBackendDown** – Backend down for 2m
 - **DatabaseConnectionFailed** – High 5xx rate (possible DB/Redis issues)
+- **RedisDown** – Redis exporter unreachable for 5m
+- **PostgresDown** – PostgreSQL exporter unreachable for 5m
 
 ### Warning
-- **HighCPU** – CPU > 80% for 5m
-- **HighMemory** – Memory > 85% for 5m
+- **HighCPU** – CPU > 80% for 5m (requires node-exporter)
+- **HighMemory** – Memory > 85% for 5m (requires node-exporter)
 - **HighErrorRate** – 5xx rate > 5% for 5m
 - **HighLatency** – p95 latency > 2s for 5m
 
@@ -115,23 +133,15 @@ Open http://localhost:9090
 
 ## CloudWatch Logs (Option B)
 
-To send container logs to CloudWatch:
+Full setup: **[CLOUDWATCH_LOGGING.md](CLOUDWATCH_LOGGING.md)**
 
-### 1. Create log group
-
-```bash
-aws logs create-log-group --log-group-name /aws/eks/afrimart/application
-```
-
-### 2. Deploy Fluent Bit (AWS for Fluent Bit)
+Quick deploy:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/aws-samples/amazon-cloudwatch-container-insights/latest/k8s-deployment-manifest-templates/deployment-mode/daemonset/container-insights-monitoring/fluent-bit/fluent-bit.yaml
+./scripts/setup-cloudwatch-logging.sh
 ```
 
-### 3. Configure log groups in Fluent Bit
-
-See [AWS EKS CloudWatch Logs](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Container-Insights-setup-logs.html).
+Log groups: `/aws/containerinsights/afrimart-eks/{application,host,dataplane}`
 
 ---
 
@@ -145,7 +155,7 @@ See [RUNBOOK.md](RUNBOOK.md) for common alerts and remediation steps.
 
 | Criterion | Weight | Implementation |
 |-----------|--------|----------------|
-| Monitoring completeness | 30% | Prometheus, node-exporter, backend metrics, recording rules, alerting rules |
-| Dashboard design | 25% | Application, infrastructure, overview dashboards |
-| Alert quality | 25% | Critical and warning alerts, Alertmanager routing |
-| Documentation | 20% | This doc, runbook, manifest comments |
+| **Monitoring completeness** | 30% | Prometheus, Grafana, backend/redis/postgres exporters, recording rules, alerting rules, CloudWatch Logs (Fluent Bit) |
+| **Dashboard design** | 25% | AfriMart Overview, Application, Infrastructure, Database, Redis, Business dashboards (JSON in `k8s/monitoring/dashboards/`) |
+| **Alert quality** | 25% | Critical (5) and Warning (4) alerts, Alertmanager routing, runbook ([RUNBOOK.md](RUNBOOK.md)), [ALERTING.md](ALERTING.md) |
+| **Documentation** | 20% | MONITORING_PHASE6, PROMETHEUS_MONITORING_GUIDELINE, ALERTING, CLOUDWATCH_LOGGING, RUNBOOK |

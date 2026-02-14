@@ -1,0 +1,55 @@
+# PostgreSQL Exporter - exposes pg_* metrics from RDS
+# Create secret: kubectl create secret generic exporter-credentials -n monitoring --from-literal=DATA_SOURCE_NAME="postgresql://afrimatadmin:PASSWORD@afrimart-postgres.xxx.rds.amazonaws.com:5432/afrimart?sslmode=disable"
+# Use same RDS endpoint and password as afrimart-secrets
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-exporter
+  namespace: monitoring
+  labels:
+    app: postgres-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-exporter
+  template:
+    metadata:
+      labels:
+        app: postgres-exporter
+    spec:
+      containers:
+        - name: postgres-exporter
+          image: prometheuscommunity/postgres-exporter:v0.15.0
+          env:
+            - name: DATA_SOURCE_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: exporter-credentials
+                  key: DATA_SOURCE_NAME
+          ports:
+            - containerPort: 9187
+              name: metrics
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-exporter
+  namespace: monitoring
+  labels:
+    app: postgres-exporter
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9187
+      targetPort: 9187
+      name: metrics
+  selector:
+    app: postgres-exporter

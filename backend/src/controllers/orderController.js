@@ -1,6 +1,7 @@
 const { Order, OrderItem, Cart, Product, User } = require('../models');
 const { sequelize } = require('../config/database');
 const emailQueue = require('../jobs/emailQueue');
+const { trackOrder } = require('../utils/metrics');
 
 // Generate unique order number
 const generateOrderNumber = () => {
@@ -90,6 +91,9 @@ const createOrder = async (req, res, next) => {
     });
 
     await t.commit();
+
+    // Track business metrics for Prometheus
+    trackOrder(order.totalAmount);
 
     // Queue email notification (non-blocking)
     try {

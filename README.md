@@ -87,6 +87,8 @@ Site URL: `http://<public-ip>/` (after Ansible deploy)
 | [docs/RESOURCE_UTILIZATION.md](docs/RESOURCE_UTILIZATION.md) | **Phase 5: Resource utilization** – sizing analysis |
 | [docs/MONITORING_PHASE6.md](docs/MONITORING_PHASE6.md) | **Phase 6: Monitoring** – Prometheus, Grafana, Alertmanager |
 | [docs/PROMETHEUS_MONITORING_GUIDELINE.md](docs/PROMETHEUS_MONITORING_GUIDELINE.md) | **Prometheus guide** – queries, backend fix, troubleshooting |
+| [docs/ALERTING.md](docs/ALERTING.md) | **Alerting** – alert rules, notification channels, on-call |
+| [docs/CLOUDWATCH_LOGGING.md](docs/CLOUDWATCH_LOGGING.md) | **CloudWatch Logs** – Fluent Bit, Log Insights, dashboards |
 | [docs/RUNBOOK.md](docs/RUNBOOK.md) | **Runbook** – alert remediation steps |
 
 ## Phase 5: Kubernetes / EKS (Quick Start)

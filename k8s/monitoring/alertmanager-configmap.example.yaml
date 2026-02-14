@@ -1,5 +1,11 @@
-# Copy to alertmanager-configmap.yaml and add your Slack webhook URL
+# Copy to alertmanager-configmap.yaml and add your Slack webhook URL and/or email
 # DO NOT commit alertmanager-configmap.yaml - it contains secrets
+#
+# Channels:
+#   Critical: InstanceDown, AfriMartBackendDown, DatabaseConnectionFailed, RedisDown, PostgresDown
+#   Warning:  HighCPU, HighMemory, HighErrorRate, HighLatency
+#
+# On-call: Use PagerDuty/Opsgenie webhook for critical, or Slack @channel in #alerts-critical
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -9,6 +15,11 @@ data:
   alertmanager.yml: |
     global:
       resolve_timeout: 5m
+      # For email - uncomment and set:
+      # smtp_smarthost: 'smtp.gmail.com:587'
+      # smtp_from: 'alerts@example.com'
+      # smtp_auth_username: 'alerts@example.com'
+      # smtp_auth_password: 'YOUR_APP_PASSWORD'
 
     route:
       group_by: ['alertname', 'severity']
@@ -20,6 +31,7 @@ data:
         - match:
             severity: critical
           receiver: critical
+          repeat_interval: 1h
         - match:
             severity: warning
           receiver: warning
@@ -29,11 +41,26 @@ data:
         slack_configs:
           - api_url: 'YOUR_SLACK_WEBHOOK_URL'
             channel: '#alerts'
+            title: '{{ .Status | toUpper }}: {{ .GroupLabels.alertname }}'
+            text: '{{ range .Alerts }}{{ .Annotations.summary }}: {{ .Annotations.description }}{{ end }}'
+
       - name: critical
         slack_configs:
           - api_url: 'YOUR_SLACK_WEBHOOK_URL'
             channel: '#alerts-critical'
+            title: '🚨 {{ .Status | toUpper }}: {{ .GroupLabels.alertname }}'
+            text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+        # Email (optional) - uncomment to add:
+        # email_configs:
+        #   - to: 'oncall@example.com'
+        #     send_resolved: true
+        # PagerDuty (optional) - for on-call rotation:
+        # pagerduty_configs:
+        #   - service_key: 'YOUR_PAGERDUTY_INTEGRATION_KEY'
+
       - name: warning
         slack_configs:
           - api_url: 'YOUR_SLACK_WEBHOOK_URL'
             channel: '#alerts-warning'
+            title: '⚠️ {{ .Status | toUpper }}: {{ .GroupLabels.alertname }}'
+            text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'

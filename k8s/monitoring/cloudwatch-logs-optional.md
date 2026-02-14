@@ -1,5 +1,7 @@
 # CloudWatch Logs (Optional)
 
+**→ For full setup, see [docs/CLOUDWATCH_LOGGING.md](../docs/CLOUDWATCH_LOGGING.md)**
+
 To send container logs from EKS to CloudWatch Logs:
 
 ## 1. Create Log Groups

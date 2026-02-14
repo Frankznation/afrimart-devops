@@ -45,6 +45,40 @@ kubectl describe pod -l app=backend -n afrimart
 
 ---
 
+### RedisDown
+
+**Meaning:** Redis exporter unreachable for 5+ minutes.
+
+**Check:**
+```bash
+kubectl get pods -n monitoring -l app=redis-exporter
+kubectl logs -l app=redis-exporter -n monitoring --tail=50
+```
+
+**Actions:**
+1. Restart redis-exporter: `kubectl rollout restart deployment/redis-exporter -n monitoring`
+2. Verify ElastiCache is running and security groups allow EKS nodes
+3. Check exporter-credentials secret has correct REDIS_ADDR
+
+---
+
+### PostgresDown
+
+**Meaning:** PostgreSQL exporter unreachable for 5+ minutes.
+
+**Check:**
+```bash
+kubectl get pods -n monitoring -l app=postgres-exporter
+kubectl logs -l app=postgres-exporter -n monitoring --tail=50
+```
+
+**Actions:**
+1. Restart postgres-exporter: `kubectl rollout restart deployment/postgres-exporter -n monitoring`
+2. Verify RDS is running and security groups allow EKS nodes
+3. Check exporter-credentials secret has correct DATA_SOURCE_NAME
+
+---
+
 ### DatabaseConnectionFailed (High 5xx)
 
 **Meaning:** Backend returning many 5xx errors; may indicate DB or Redis connection issues.

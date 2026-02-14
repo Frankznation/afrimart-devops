@@ -1,0 +1,17 @@
+{
+  "annotations": {"list":[]},
+  "editable":true,
+  "id":null,
+  "panels":[
+    {"datasource":{"type":"prometheus","uid":"prometheus"},"fieldConfig":{"defaults":{"color":{"mode":"palette-classic"},"unit":"short"},"overrides":[]},"gridPos":{"h":8,"w":12,"x":0,"y":0},"targets":[{"expr":"pg_stat_database_numbackends","legendFormat":"{{datname}}","refId":"A"}],"title":"Active Connections","type":"timeseries"},
+    {"datasource":{"type":"prometheus","uid":"prometheus"},"fieldConfig":{"defaults":{"color":{"mode":"palette-classic"},"unit":"short"},"overrides":[]},"gridPos":{"h":8,"w":12,"x":12,"y":0},"targets":[{"expr":"pg_stat_database_xact_commit","legendFormat":"commits {{datname}}","refId":"A"}],"title":"Transactions Committed","type":"timeseries"},
+    {"datasource":{"type":"prometheus","uid":"prometheus"},"fieldConfig":{"defaults":{"color":{"mode":"palette-classic"},"unit":"short"},"overrides":[]},"gridPos":{"h":8,"w":12,"x":0,"y":8},"targets":[{"expr":"pg_stat_database_xact_rollback","legendFormat":"rollbacks {{datname}}","refId":"A"}],"title":"Transactions Rolled Back","type":"timeseries"},
+    {"datasource":{"type":"prometheus","uid":"prometheus"},"fieldConfig":{"defaults":{"color":{"mode":"palette-classic"},"unit":"short"},"overrides":[]},"gridPos":{"h":8,"w":12,"x":12,"y":8},"targets":[{"expr":"rate(pg_stat_database_tup_fetched[5m])","legendFormat":"fetched {{datname}}","refId":"A"}],"title":"Rows Fetched (rate)","type":"timeseries"}
+  ],
+  "schemaVersion":38,
+  "tags":["database","postgres"],
+  "templating":{"list":[{"current":{},"hide":0,"name":"datasource","type":"datasource"}]},
+  "time":{"from":"now-1h","to":"now"},
+  "title":"Database Performance (PostgreSQL)",
+  "version":1
+}

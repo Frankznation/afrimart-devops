@@ -1,0 +1,17 @@
+{
+  "annotations":{"list":[]},
+  "editable":true,
+  "id":null,
+  "panels":[
+    {"datasource":{"type":"prometheus","uid":"prometheus"},"fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"unit":"short"},"overrides":[]},"gridPos":{"h":6,"w":8,"x":0,"y":0},"targets":[{"expr":"afrimart_orders_total","legendFormat":"Orders","refId":"A"}],"title":"Total Orders","type":"stat"},
+    {"datasource":{"type":"prometheus","uid":"prometheus"},"fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"unit":"currencyUSD"},"overrides":[]},"gridPos":{"h":6,"w":8,"x":8,"y":0},"targets":[{"expr":"afrimart_revenue_total","legendFormat":"Revenue","refId":"A"}],"title":"Total Revenue","type":"stat"},
+    {"datasource":{"type":"prometheus","uid":"prometheus"},"fieldConfig":{"defaults":{"color":{"mode":"palette-classic"},"unit":"short"},"overrides":[]},"gridPos":{"h":8,"w":12,"x":0,"y":6},"targets":[{"expr":"increase(afrimart_orders_total[1h])","legendFormat":"Orders (1h)","refId":"A"}],"title":"Orders per Hour","type":"timeseries"},
+    {"datasource":{"type":"prometheus","uid":"prometheus"},"fieldConfig":{"defaults":{"color":{"mode":"palette-classic"},"unit":"currencyUSD"},"overrides":[]},"gridPos":{"h":8,"w":12,"x":12,"y":6},"targets":[{"expr":"increase(afrimart_revenue_total[1h])","legendFormat":"Revenue (1h)","refId":"A"}],"title":"Revenue per Hour","type":"timeseries"}
+  ],
+  "schemaVersion":38,
+  "tags":["business","afrimart"],
+  "templating":{"list":[{"current":{},"hide":0,"name":"datasource","type":"datasource"}]},
+  "time":{"from":"now-1h","to":"now"},
+  "title":"Business Metrics (Orders, Revenue)",
+  "version":1
+}

@@ -50,6 +50,24 @@ data:
               summary: "High 5xx error rate on backend"
               description: "Backend may be failing to connect to database or Redis."
 
+          - alert: RedisDown
+            expr: up{job="redis"} == 0
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Redis exporter unreachable"
+              description: "Redis metrics are not being scraped. Check redis-exporter pod and ElastiCache connectivity."
+
+          - alert: PostgresDown
+            expr: up{job="postgres"} == 0
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "PostgreSQL exporter unreachable"
+              description: "Database metrics are not being scraped. Check postgres-exporter pod and RDS connectivity."
+
       - name: warning
         rules:
           - alert: HighCPU

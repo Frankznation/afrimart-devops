@@ -4,7 +4,7 @@
   "id": null,
   "panels": [
     {
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": { "color": { "mode": "palette-classic" }, "unit": "percentunit" },
         "overrides": []
@@ -21,7 +21,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": { "color": { "mode": "palette-classic" }, "unit": "percentunit" },
         "overrides": []
@@ -38,7 +38,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": { "color": { "mode": "palette-classic" }, "unit": "bytes" },
         "overrides": []
@@ -55,7 +55,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": { "color": { "mode": "thresholds" }, "mappings": [] },
         "overrides": []

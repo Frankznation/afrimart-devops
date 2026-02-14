@@ -32,3 +32,19 @@ data:
               namespace: afrimart
               job: afrimart-backend
 
+      # PostgreSQL (RDS)
+      - job_name: postgres
+        metrics_path: /metrics
+        static_configs:
+          - targets: [postgres-exporter.monitoring.svc.cluster.local:9187]
+            labels:
+              job: postgres
+
+      # Redis (ElastiCache)
+      - job_name: redis
+        metrics_path: /metrics
+        static_configs:
+          - targets: [redis-exporter.monitoring.svc.cluster.local:9121]
+            labels:
+              job: redis
+
