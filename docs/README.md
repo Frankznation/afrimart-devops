@@ -41,6 +41,7 @@ Documentation index and guidelines for the AfriMart DevOps project.
 | [ALERTING.md](ALERTING.md) | Alert rules, notification channels |
 | [CLOUDWATCH_LOGGING.md](CLOUDWATCH_LOGGING.md) | CloudWatch Logs, Fluent Bit |
 | [RUNBOOK.md](RUNBOOK.md) | Alert remediation runbook |
+| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | **Troubleshooting** – common issues and fixes |
 
 ### Security (Phase 7)
 | Document | Description |
